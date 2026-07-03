@@ -2,6 +2,8 @@
 
 GitHub Pages 相容的純靜態作品集。網站由 `index.html`、`styles.css`、`app.js`、`projects.json` 與 `assets/` 組成，沒有外部套件或字型依賴。
 
+目前版型為 Cinematic Minimal v1：WORK 使用文字索引與桌面 hover 預覽，專案頁採八段式 case study，RESUME 採編號 dossier。行動版 WORK 為常駐縮圖、單次點擊開啟。
+
 ## 本機預覽
 
 ```bash
@@ -20,7 +22,7 @@ python3 -m http.server 8000
 
 ## 發布前必改
 
-在 `app.js` 搜尋「請替換」，填入 Email、電話與社群連結。若有正式網址，亦請在 `index.html` 補上 canonical URL 與 `og:url`。
+在 `app.js` 搜尋「請替換」，填入 Email、電話與社群連結。案例的空間策略、材質、照明與細部目前由 `DEFAULT_SECTIONS` 顯示「文案待補」；之後可在 `projects.json` 為個別專案加入選填 `sections` 覆寫。若有正式網址，亦請在 `index.html` 補上 canonical URL 與 `og:url`。
 
 ## 更新圖片
 
