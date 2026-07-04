@@ -35,6 +35,7 @@ function transitionRender(){
 function finishTransition(){mask.classList.remove('is-leaving');state.transitioning=false;if(state.pending){state.pending=false;transitionRender()}}
 function swapView(shouldFocus=true){
   closeLightbox();state.observer?.disconnect();const r=route();setNav(r.page);
+  const dark=r.page==='projects';document.documentElement.classList.toggle('dark',dark);document.querySelector('meta[name="theme-color"]').content=dark?'#0d0d0d':'#e1e1e1';
   if(r.page==='resume')renderResume();else if(r.page==='project')renderProject(r.slug);else renderProjects();
   scrollTo({top:0,left:0,behavior:'instant'});requestAnimationFrame(()=>{if(shouldFocus)view.focus({preventScroll:true});bindReveals()});
 }
@@ -46,11 +47,9 @@ function imageAttrs(im,eager=false){return `src="${esc(im.src)}" width="${im.wid
 
 function renderProjects(){
   document.title='古捷宇｜Interior Design Portfolio';const completed=state.projects.filter(p=>p.status.includes('完工')).length;
-  view.innerHTML=`<section class="work-hero reveal"><p>JIE-YU GU</p><h1>SELECTED<br>WORK</h1><div><span>Interior · Spatial · Visual Design</span><span>${String(state.projects.length).padStart(2,'0')} Projects · ${completed} Completed</span></div></section><section class="work-index" aria-labelledby="work-title"><header class="index-head"><h2 id="work-title">WORK INDEX</h2><span>NO.</span><span>PROJECT</span><span>EN / CATEGORY</span><span>STATUS</span></header><div class="project-list">${state.projects.map(projectRow).join('')}</div><div class="work-preview" aria-hidden="true"><img alt=""></div></section>`;
-  const list=view.querySelector('.project-list'),preview=view.querySelector('.work-preview'),previewImg=preview.querySelector('img');
-  list.querySelectorAll('.project-row').forEach(row=>{const activate=()=>{previewImg.src=row.dataset.preview;preview.classList.add('active');list.classList.add('has-active');row.classList.add('active')};const deactivate=()=>{preview.classList.remove('active');list.classList.remove('has-active');row.classList.remove('active')};row.addEventListener('mouseenter',activate);row.addEventListener('mouseleave',deactivate);row.addEventListener('focusin',activate);row.addEventListener('focusout',deactivate)});
+  view.innerHTML=`<section class="work-wall" aria-labelledby="work-title"><header class="wall-bar reveal"><h2 id="work-title">SELECTED WORKS</h2><span>${String(completed).padStart(2,'0')} COMPLETED / ${String(state.projects.length-completed).padStart(2,'0')} PROPOSALS</span></header><div class="wall-grid">${state.projects.map(wallItem).join('')}</div></section>`;
 }
-function projectRow(p,i){const cover=p.images[0],num=String(PROJECT_NUMBERS[p.slug]).padStart(2,'0');return `<article class="project-row reveal" style="--i:${i}" data-preview="${esc(cover.src)}"><a href="#project/${esc(p.slug)}" aria-label="查看${esc(p.title)}案例"><span class="row-no">${num}</span><span class="row-title">${esc(p.title)}</span><span class="row-meta"><b>${esc(p.en)}</b><small>${esc(p.category)}</small></span><span class="row-status">${esc(p.status)}</span><img class="row-thumb" ${imageAttrs(cover,i<2)}></a></article>`}
+function wallItem(p,i){const cover=p.images[0],num=String(PROJECT_NUMBERS[p.slug]).padStart(2,'0');return `<a class="wall-item reveal" style="--i:${i}" href="#project/${esc(p.slug)}" aria-label="查看${esc(p.title)}案例"><span class="wall-no" aria-hidden="true">${num}</span><img ${imageAttrs(cover,i<2)}><span class="wall-info"><span>NO. ${num}</span><strong>${esc(p.title)}</strong><small>${esc(p.en)} · ${esc(p.category)} · ${esc(p.status)}</small></span></a>`}
 
 function renderResume(){
   document.title='Resume｜古捷宇';
