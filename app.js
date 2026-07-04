@@ -55,8 +55,8 @@ function makeReel(){
   const nameEl=view.querySelector('.reel-name'),metaEl=view.querySelector('.reel-meta'),countEl=view.querySelector('.reel-count'),cursor=view.querySelector('.reel-cursor');
   const total=items.length,reduce=reduceMotion.matches,touch=matchMedia('(hover:none)').matches;
   const maxTilt=touch?35:58;
-  let raf=0,current=-1,snapTimer=0,rollTimer=0,hovering=false;
-  const vh=()=>innerHeight;
+  let raf=0,current=-1,snapTimer=0,rollTimer=0,hovering=false,targetIdx=Math.max(0,Math.min(total-1,Math.round(scrollY/innerHeight))),locked=false,unlockT=0,animating=false;
+  const vh=()=>innerHeight,clampIdx=n=>Math.max(0,Math.min(total-1,n));
   function roll(el,oldText,newText){const old=document.createElement('span'),next=document.createElement('span');old.className='reel-old';old.setAttribute('aria-hidden','true');old.textContent=oldText;next.className='reel-new';next.textContent=newText;el.replaceChildren(old,next)}
   function setCard(n){if(n===current)return;const previous=current<0?null:state.projects[current],p=state.projects[n],num=String(PROJECT_NUMBERS[p.slug]).padStart(2,'0'),meta=`NO. ${num} · ${p.category} · ${p.status}`;
     clearTimeout(rollTimer);current=n;
@@ -71,14 +71,20 @@ function makeReel(){
       el.style.filter=`brightness(${br})`;el.style.zIndex=String(100-Math.round(ad*10));el.style.opacity=ad>2.2?String(Math.max(0,(2.6-ad)/.4)):'1';});
     setCard(Math.max(0,Math.min(total-1,focus)));}
   function onScroll(){if(!raf)raf=requestAnimationFrame(frame);if(!reduce){clearTimeout(snapTimer);snapTimer=setTimeout(snap,150)}}
-  function snap(){const last=(total-1)*vh();if(scrollY>last+1)return;const target=Math.max(0,Math.min(total-1,Math.round(scrollY/vh())))*vh();if(Math.abs(target-scrollY)>1)scrollTo({top:target,behavior:'smooth'})}
+  function goTo(t){targetIdx=clampIdx(t);animating=true;scrollTo({top:targetIdx*vh(),behavior:reduce?'auto':'smooth'})}
+  function snap(){const last=(total-1)*vh();animating=false;if(scrollY>last+1)return;const idx=clampIdx(Math.round(scrollY/vh()));targetIdx=idx;const top=idx*vh();if(Math.abs(top-scrollY)>1){animating=true;scrollTo({top,behavior:reduce?'auto':'smooth'})}}
+  function step(dir){const base=animating?targetIdx:clampIdx(Math.round(scrollY/vh()));goTo(base+dir)}
+  // ponytail: 140ms idle 鎖，一次手勢(滑鼠刻度/觸控板滑動含慣性尾)=一張；要快滾多張再調降
+  function releaseSoon(){clearTimeout(unlockT);unlockT=setTimeout(()=>{locked=false},140)}
+  function onWheel(e){const last=(total-1)*vh();if(reduce||touch||e.ctrlKey||Math.abs(e.deltaY)<=Math.abs(e.deltaX))return;const dir=e.deltaY>0?1:-1;if((dir<0&&scrollY<=0)||(dir>0&&scrollY>=last))return;e.preventDefault();if(locked){releaseSoon();return}step(dir);locked=true;releaseSoon()}
+  function onKey(e){if(route().page!=='projects')return;const tg=e.target;if(tg&&/^(INPUT|TEXTAREA|SELECT)$/.test(tg.tagName))return;let dir=0,jump=-1;switch(e.key){case'PageDown':case'ArrowDown':dir=1;break;case' ':case'Spacebar':if(tg&&/^(A|BUTTON)$/.test(tg.tagName))return;dir=1;break;case'PageUp':case'ArrowUp':dir=-1;break;case'Home':jump=0;break;case'End':jump=total-1;break;default:return}e.preventDefault();if(jump>=0)goTo(jump);else step(dir)}
   function onMove(e){if(!hovering)return;cursor.style.left=e.clientX+'px';cursor.style.top=e.clientY+'px'}
   if(!touch){stage.addEventListener('pointermove',e=>{const over=e.target.closest('.reel-item');const isFocus=over&&+over.dataset.i===current;hovering=isFocus;stage.classList.toggle('cursor-on',isFocus);if(isFocus)onMove(e)});
     stage.addEventListener('pointerleave',()=>{hovering=false;stage.classList.remove('cursor-on')});}
-  items.forEach(el=>el.addEventListener('click',e=>{const i=+el.dataset.i;if(i!==current){e.preventDefault();scrollTo({top:i*vh(),behavior:'smooth'})}}));
-  items.forEach(el=>el.addEventListener('focus',()=>{const i=+el.dataset.i;if(i!==current)scrollTo({top:i*vh(),behavior:reduce?'auto':'smooth'})}));
-  addEventListener('scroll',onScroll,{passive:true});addEventListener('resize',onScroll);if('onscrollend'in window&&!reduce)addEventListener('scrollend',snap);frame();
-  return{destroy(){removeEventListener('scroll',onScroll);removeEventListener('resize',onScroll);removeEventListener('scrollend',snap);cancelAnimationFrame(raf);clearTimeout(snapTimer);clearTimeout(rollTimer)}};
+  items.forEach(el=>el.addEventListener('click',e=>{const i=+el.dataset.i;if(i!==current){e.preventDefault();goTo(i)}}));
+  items.forEach(el=>el.addEventListener('focus',()=>{const i=+el.dataset.i;if(i!==current)goTo(i)}));
+  addEventListener('scroll',onScroll,{passive:true});addEventListener('resize',onScroll);addEventListener('wheel',onWheel,{passive:false});addEventListener('keydown',onKey);if('onscrollend'in window&&!reduce)addEventListener('scrollend',snap);frame();
+  return{destroy(){removeEventListener('scroll',onScroll);removeEventListener('resize',onScroll);removeEventListener('wheel',onWheel);removeEventListener('keydown',onKey);removeEventListener('scrollend',snap);cancelAnimationFrame(raf);clearTimeout(snapTimer);clearTimeout(rollTimer);clearTimeout(unlockT)}};
 }
 
 function renderResume(){
@@ -98,14 +104,27 @@ function renderResume(){
 function renderProject(slug){
   const i=state.projects.findIndex(p=>p.slug===slug);if(i<0){location.replace('#projects');return}
   const p=state.projects[i],cover=p.images[0],prev=state.projects[(i-1+state.projects.length)%state.projects.length],next=state.projects[(i+1)%state.projects.length],num=String(PROJECT_NUMBERS[p.slug]).padStart(2,'0');
-  const distribution=distributeImages(p.images.slice(1));document.title=`${p.title}｜古捷宇作品集`;
+  const groups=distributeImages(p.images.slice(1));document.title=`${p.title}｜古捷宇作品集`;
   const sectionData=DEFAULT_SECTIONS.map((defaults,n)=>({...defaults,...(Array.isArray(p.sections)?p.sections[n]:p.sections?.[defaults.key])}));
-  view.innerHTML=`<article class="case-study"><section class="case-hero"><img ${imageAttrs(cover,true)}><a class="case-back" href="#projects">← WORK INDEX</a><div class="case-hero-copy"><p>PROJECT ${num} · ${esc(p.category)} · ${esc(p.status)}</p><h1>${esc(p.title)}<small>${esc(p.en)}</small></h1></div></section><section class="case-brief reveal"><header><span>02</span><h2>BRIEF</h2><p>NO. ${num}<br>${esc(p.category)}<br>${esc(p.status)}</p></header><p>${esc(p.description)}</p></section>${sectionData.map((s,n)=>caseSection(p,s,distribution.sections[n],n+3)).join('')}<section class="case-gallery reveal"><header><span>07</span><h2>GALLERY</h2></header><div class="case-media">${distribution.gallery.map(item=>caseImage(p,item)).join('')}</div></section><nav class="case-pager" aria-label="案例切換"><a class="previous" href="#project/${esc(prev.slug)}">← PREVIOUS · ${esc(prev.title)}</a><a class="next" href="#project/${esc(next.slug)}"><span>08 · NEXT PROJECT</span><strong>${esc(next.title)}</strong><small>${esc(next.en)} →</small></a></nav></article>`;
-  view.querySelectorAll('[data-image-index]').forEach(button=>button.onclick=()=>openLightbox(p,+button.dataset.imageIndex,button));
+  view.innerHTML=`<article class="case-study"><section class="case-hero"><img ${imageAttrs(cover,true)}><a class="case-back" href="#projects">← WORK INDEX</a><div class="case-hero-copy"><p>PROJECT ${num} · ${esc(p.category)} · ${esc(p.status)}</p><h1>${esc(p.title)}<small>${esc(p.en)}</small></h1></div></section><section class="case-brief reveal"><header><span>02</span><h2>BRIEF</h2><p>NO. ${num}<br>${esc(p.category)}<br>${esc(p.status)}</p></header><p>${esc(p.description)}</p></section>${sectionData.map((s,n)=>caseCarousel(p,groups[n],s,n+3)).join('')}<nav class="case-pager" aria-label="案例切換"><a class="previous" href="#project/${esc(prev.slug)}">← PREVIOUS · ${esc(prev.title)}</a><a class="next" href="#project/${esc(next.slug)}"><span>NEXT PROJECT</span><strong>${esc(next.title)}</strong><small>${esc(next.en)} →</small></a></nav></article>`;
+  view.querySelectorAll('.case-carousel').forEach(root=>bindCaseCarousel(root,p));
 }
-function distributeImages(images){const sections=[];let cursor=0;for(let n=0;n<4;n++){const remaining=images.length-cursor;const later=3-n;const take=Math.min(3,Math.max(0,remaining-later*2));sections.push(images.slice(cursor,cursor+take));cursor+=take}return{sections,gallery:images.slice(cursor)}}
-function caseSection(project,section,images,number){return `<section class="case-section reveal"><header><span>${String(number).padStart(2,'0')}</span><h2>${esc(section.zh)}<small>${esc(section.en)}</small></h2><p class="${String(section.copy).includes('〔文案待補〕')?'placeholder':''}">${esc(section.copy)}</p></header><div class="case-media">${images.map(item=>caseImage(project,item)).join('')}</div></section>`}
-function caseImage(project,image){const index=project.images.indexOf(image),portrait=image.height>image.width;return `<button class="case-image ${portrait?'portrait':'landscape'}" data-image-index="${index}" aria-label="放大${esc(image.alt)}"><img ${imageAttrs(image,index<3)}></button>`}
+function distributeImages(images){const n=images.length,groups=[];let start=0;for(let k=0;k<4;k++){const size=Math.ceil((n-start)/(4-k));groups.push(images.slice(start,start+size));start+=size}return groups}
+function caseCarousel(project,images,section,number){
+  if(!images.length)return '';
+  const first=images[0],ph=String(section.copy).includes('〔文案待補〕');
+  return `<section class="case-carousel reveal"><header><span>${String(number).padStart(2,'0')}</span><h2>${esc(section.zh)}<small>${esc(section.en)}</small></h2><p class="${ph?'placeholder':''}">${esc(section.copy)}</p></header><div class="cc-stage" tabindex="0" aria-roledescription="carousel" aria-label="${esc(section.zh)}圖片輪播"><button class="cc-main" aria-label="放大目前圖片"><img ${imageAttrs(first,number<4)} data-cc-img></button><button class="cc-arrow cc-prev" aria-label="上一張圖片">‹</button><button class="cc-arrow cc-next" aria-label="下一張圖片">›</button><span class="cc-count" aria-live="polite">01 / ${String(images.length).padStart(2,'0')}</span></div><div class="cc-thumbs" aria-label="其他縮圖">${images.map((im,i)=>`<button class="cc-thumb${i===0?' active':''}" data-cc="${i}" data-global="${project.images.indexOf(im)}" aria-label="顯示第 ${i+1} 張圖片"><img src="${esc(im.src)}" alt="" loading="lazy"></button>`).join('')}</div></section>`;
+}
+function bindCaseCarousel(root,project){
+  const stage=root.querySelector('.cc-stage'),mainBtn=root.querySelector('.cc-main'),img=root.querySelector('[data-cc-img]'),count=root.querySelector('.cc-count'),thumbs=[...root.querySelectorAll('.cc-thumb')];
+  const imgs=thumbs.map(t=>project.images[+t.dataset.global]),len=thumbs.length;let idx=0;
+  function show(n){idx=(n+len)%len;const im=imgs[idx];img.src=im.src;img.width=im.width;img.height=im.height;img.alt=im.alt;count.textContent=`${String(idx+1).padStart(2,'0')} / ${String(len).padStart(2,'0')}`;thumbs.forEach((t,i)=>{t.classList.toggle('active',i===idx);t.setAttribute('aria-current',i===idx?'true':'false')});thumbs[idx].scrollIntoView({behavior:reduceMotion.matches?'auto':'smooth',inline:'center',block:'nearest'})}
+  root.querySelector('.cc-prev').onclick=()=>show(idx-1);root.querySelector('.cc-next').onclick=()=>show(idx+1);
+  thumbs.forEach((t,i)=>t.onclick=()=>show(i));
+  mainBtn.onclick=()=>openLightbox(project,+thumbs[idx].dataset.global,mainBtn);
+  stage.addEventListener('keydown',e=>{if(e.key==='ArrowLeft'){e.preventDefault();show(idx-1)}else if(e.key==='ArrowRight'){e.preventDefault();show(idx+1)}});
+  let x=0;stage.addEventListener('touchstart',e=>x=e.changedTouches[0].clientX,{passive:true});stage.addEventListener('touchend',e=>{const d=e.changedTouches[0].clientX-x;if(Math.abs(d)>45)show(idx+(d<0?1:-1))},{passive:true});
+}
 
 function bindLightbox(){const lb=document.querySelector('#lightbox');document.querySelector('#lb-close').onclick=closeLightbox;document.querySelector('#lb-prev').onclick=()=>showImage(state.index-1);document.querySelector('#lb-next').onclick=()=>showImage(state.index+1);lb.addEventListener('click',e=>{if(e.target===lb)closeLightbox()});let x=0;lb.addEventListener('touchstart',e=>x=e.changedTouches[0].clientX,{passive:true});lb.addEventListener('touchend',e=>{const d=e.changedTouches[0].clientX-x;if(Math.abs(d)>45)showImage(state.index+(d<0?1:-1))},{passive:true});document.addEventListener('keydown',e=>{if(!lb.classList.contains('open'))return;if(e.key==='Escape')closeLightbox();if(e.key==='ArrowLeft')showImage(state.index-1);if(e.key==='ArrowRight')showImage(state.index+1);if(e.key==='Tab')trapFocus(e)})}
 function openLightbox(project,index,opener){state.gallery=project;state.opener=opener;const lb=document.querySelector('#lightbox');lb.classList.add('open');lb.setAttribute('aria-hidden','false');document.body.classList.add('lb-open');document.querySelector('#lb-title').textContent=project.title;document.querySelector('#lb-thumbs').innerHTML=project.images.map((im,i)=>`<button class="lb-thumb" data-thumb="${i}" aria-label="前往第 ${i+1} 張"><img src="${esc(im.src)}" alt=""></button>`).join('');document.querySelectorAll('[data-thumb]').forEach(b=>b.onclick=()=>showImage(+b.dataset.thumb));showImage(index);document.querySelector('#lb-close').focus()}
