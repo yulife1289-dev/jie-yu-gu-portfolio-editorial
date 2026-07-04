@@ -5,7 +5,7 @@ const DEFAULT_SECTIONS=[
   {key:'lighting',zh:'照明規劃',en:'LIGHTING STRATEGY',copy:'〔文案待補〕自然光與人工照明的層次將於此處補充。'},
   {key:'details',zh:'細部',en:'DETAILS',copy:'〔文案待補〕收邊、五金與客製細節將於此處補充。'}
 ];
-const state={projects:[],gallery:null,index:0,opener:null,observer:null,transitioning:false,pending:false};
+const state={projects:[],gallery:null,index:0,opener:null,observer:null,transitioning:false,pending:false,reel:null};
 const view=document.querySelector('#view');
 const mask=document.querySelector('.transition-mask');
 const reduceMotion=matchMedia('(prefers-reduced-motion: reduce)');
@@ -34,8 +34,7 @@ function transitionRender(){
 }
 function finishTransition(){mask.classList.remove('is-leaving');state.transitioning=false;if(state.pending){state.pending=false;transitionRender()}}
 function swapView(shouldFocus=true){
-  closeLightbox();state.observer?.disconnect();const r=route();setNav(r.page);
-  const dark=r.page==='projects';document.documentElement.classList.toggle('dark',dark);document.querySelector('meta[name="theme-color"]').content=dark?'#0d0d0d':'#e1e1e1';
+  closeLightbox();state.observer?.disconnect();state.reel?.destroy();state.reel=null;const r=route();setNav(r.page);
   if(r.page==='resume')renderResume();else if(r.page==='project')renderProject(r.slug);else renderProjects();
   scrollTo({top:0,left:0,behavior:'instant'});requestAnimationFrame(()=>{if(shouldFocus)view.focus({preventScroll:true});bindReveals()});
 }
@@ -46,10 +45,41 @@ function bindReveals(){
 function imageAttrs(im,eager=false){return `src="${esc(im.src)}" width="${im.width}" height="${im.height}" alt="${esc(im.alt)}" ${eager?'loading="eager" fetchpriority="high"':'loading="lazy" decoding="async"'}`}
 
 function renderProjects(){
-  document.title='古捷宇｜Interior Design Portfolio';const completed=state.projects.filter(p=>p.status.includes('完工')).length;
-  view.innerHTML=`<section class="work-wall" aria-labelledby="work-title"><header class="wall-bar reveal"><h2 id="work-title">SELECTED WORKS</h2><span>${String(completed).padStart(2,'0')} COMPLETED / ${String(state.projects.length-completed).padStart(2,'0')} PROPOSALS</span></header><div class="wall-grid">${state.projects.map(wallItem).join('')}</div></section>`;
+  document.title='古捷宇｜Interior Design Portfolio';const total=state.projects.length;
+  view.innerHTML=`<section class="reel" aria-label="作品索引" style="height:${total*100}vh"><div class="reel-stage"><p class="reel-side" aria-live="polite"><span class="reel-name"></span><span class="reel-meta"></span></p><div class="reel-track">${state.projects.map(reelItem).join('')}</div><p class="reel-brand" aria-hidden="true">Works</p><p class="reel-count" aria-hidden="true"></p></div><span class="reel-cursor" aria-hidden="true">VIEW</span></section>`;
+  state.reel=makeReel();
 }
-function wallItem(p,i){const cover=p.images[0],num=String(PROJECT_NUMBERS[p.slug]).padStart(2,'0');return `<a class="wall-item reveal" style="--i:${i}" href="#project/${esc(p.slug)}" aria-label="查看${esc(p.title)}案例"><span class="wall-no" aria-hidden="true">${num}</span><img ${imageAttrs(cover,i<2)}><span class="wall-info"><span>NO. ${num}</span><strong>${esc(p.title)}</strong><small>${esc(p.en)} · ${esc(p.category)} · ${esc(p.status)}</small></span></a>`}
+function reelItem(p,i){const cover=p.images[0];return `<a class="reel-item" data-i="${i}" href="#project/${esc(p.slug)}" aria-label="查看${esc(p.title)}案例"><span class="reel-frame"><img ${imageAttrs(cover,i<2)}><span class="reel-tap" aria-hidden="true">TAP TO OPEN</span></span></a>`}
+function makeReel(){
+  const stage=view.querySelector('.reel-stage'),items=[...view.querySelectorAll('.reel-item')];
+  const nameEl=view.querySelector('.reel-name'),metaEl=view.querySelector('.reel-meta'),countEl=view.querySelector('.reel-count'),cursor=view.querySelector('.reel-cursor');
+  const total=items.length,reduce=reduceMotion.matches,touch=matchMedia('(hover:none)').matches;
+  const maxTilt=touch?35:58;
+  let raf=0,current=-1,snapTimer=0,rollTimer=0,hovering=false;
+  const vh=()=>innerHeight;
+  function roll(el,oldText,newText){const old=document.createElement('span'),next=document.createElement('span');old.className='reel-old';old.setAttribute('aria-hidden','true');old.textContent=oldText;next.className='reel-new';next.textContent=newText;el.replaceChildren(old,next)}
+  function setCard(n){if(n===current)return;const previous=current<0?null:state.projects[current],p=state.projects[n],num=String(PROJECT_NUMBERS[p.slug]).padStart(2,'0'),meta=`NO. ${num} · ${p.category} · ${p.status}`;
+    clearTimeout(rollTimer);current=n;
+    if(previous&&!reduce){const oldNum=String(PROJECT_NUMBERS[previous.slug]).padStart(2,'0');roll(nameEl,previous.title,p.title);roll(metaEl,`NO. ${oldNum} · ${previous.category} · ${previous.status}`,meta);rollTimer=setTimeout(()=>{nameEl.textContent=p.title;metaEl.textContent=meta},450)}else{nameEl.textContent=p.title;metaEl.textContent=meta}
+    countEl.textContent=`${String(n+1).padStart(2,'0')} / ${String(total).padStart(2,'0')}`;items.forEach((el,i)=>el.setAttribute('aria-current',i===n?'true':'false'));}
+  function frame(){raf=0;const progress=scrollY/vh();const focus=Math.round(progress);
+    items.forEach((el,i)=>{const d=i-progress,ad=Math.abs(d);
+      if(ad>2.6){el.style.visibility='hidden';return}el.style.visibility='';
+      if(reduce){el.style.transform=`translate(-50%,calc(-50% + ${d*100}vh))`;el.style.opacity=ad<.5?'1':'0';el.style.zIndex=String(100-Math.round(ad*10));return}
+      const y=d*46,rot=Math.max(-maxTilt-4,Math.min(maxTilt+4,d*-maxTilt)),sc=Math.max(.72,1-ad*.12),br=Math.max(.4,1-ad*.34);
+      el.style.transform=`translate(-50%,calc(-50% + ${y}vh)) perspective(1400px) rotateX(${rot}deg) scale(${sc})`;
+      el.style.filter=`brightness(${br})`;el.style.zIndex=String(100-Math.round(ad*10));el.style.opacity=ad>2.2?String(Math.max(0,(2.6-ad)/.4)):'1';});
+    setCard(Math.max(0,Math.min(total-1,focus)));}
+  function onScroll(){if(!raf)raf=requestAnimationFrame(frame);if(!reduce){clearTimeout(snapTimer);snapTimer=setTimeout(snap,150)}}
+  function snap(){const last=(total-1)*vh();if(scrollY>last+1)return;const target=Math.max(0,Math.min(total-1,Math.round(scrollY/vh())))*vh();if(Math.abs(target-scrollY)>1)scrollTo({top:target,behavior:'smooth'})}
+  function onMove(e){if(!hovering)return;cursor.style.left=e.clientX+'px';cursor.style.top=e.clientY+'px'}
+  if(!touch){stage.addEventListener('pointermove',e=>{const over=e.target.closest('.reel-item');const isFocus=over&&+over.dataset.i===current;hovering=isFocus;stage.classList.toggle('cursor-on',isFocus);if(isFocus)onMove(e)});
+    stage.addEventListener('pointerleave',()=>{hovering=false;stage.classList.remove('cursor-on')});}
+  items.forEach(el=>el.addEventListener('click',e=>{const i=+el.dataset.i;if(i!==current){e.preventDefault();scrollTo({top:i*vh(),behavior:'smooth'})}}));
+  items.forEach(el=>el.addEventListener('focus',()=>{const i=+el.dataset.i;if(i!==current)scrollTo({top:i*vh(),behavior:reduce?'auto':'smooth'})}));
+  addEventListener('scroll',onScroll,{passive:true});addEventListener('resize',onScroll);if('onscrollend'in window&&!reduce)addEventListener('scrollend',snap);frame();
+  return{destroy(){removeEventListener('scroll',onScroll);removeEventListener('resize',onScroll);removeEventListener('scrollend',snap);cancelAnimationFrame(raf);clearTimeout(snapTimer);clearTimeout(rollTimer)}};
+}
 
 function renderResume(){
   document.title='Resume｜古捷宇';
