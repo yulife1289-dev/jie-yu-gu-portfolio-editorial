@@ -90,15 +90,16 @@ function makeReel(){
 function renderResume(){
   document.title='Resume｜古捷宇';
   const sections=[
-    ['001','PROFILE','橫跨室內、產品與視覺編排的設計工作者。從概念發展、空間呈現到案場監工，關注設計如何在真實使用與細節執行中成立。'],
-    ['002','EXPERIENCE','<dl><dt>樺品生活時尚股份有限公司</dt><dd>室內設計師</dd><dt>發發設計有限公司</dt><dd>產品設計師</dd><dt>中國網龍網絡有限公司</dt><dd>工業設計實習生</dd><dt>三點水文化創意</dt><dd>實習生</dd></dl>'],
-    ['003','EDUCATION','<dl><dt>實踐大學</dt><dd>工業產品設計系</dd></dl>'],
-    ['004','SKILLS','<p>室內設計 · 案場監工 · 產品設計 · 編排設計 · 攝影</p>'],
-    ['005','SOFTWARE','<p>SketchUp · Enscape · AutoCAD · Layout · Photoshop · Illustrator · Codex · Claude Code</p>'],
-    ['006','AWARDS','<dl><dt>2018 臺北設計獎</dt><dd>金獎</dd><dt>2018 臺灣國際學生創意大賽</dt><dd>金獎</dd><dt>2018 金點新秀設計獎</dt><dd>入圍</dd><dt>2014 行動電源裝置創意設計競賽</dt><dd>—</dd></dl>'],
-    ['007','CONTACT','<dl class="placeholder"><dt>Email</dt><dd>請替換</dd><dt>Phone</dt><dd>請替換</dd><dt>Social</dt><dd>請替換</dd></dl>']
+    ['001','PROFILE','<p class="resume-lead">具工業產品設計背景的室內設計師，擅長施工圖、發包圖說、現場丈量、工程監督與跨領域設計整合。</p><p>畢業於實踐大學工業產品設計系，具機械製圖、產品設計與室內設計的跨域背景。早期參與家具、居家用品、VR 會議設備、醫療設備與工具燈等產品專案；2021 年起投入室內設計、施工圖與裝配圖、發包圖說、現場丈量、成本預估、工程監督與協調。重視設計概念在真實限制、施工細節與使用情境中的完整落實。</p>'],
+    ['002','EXPERIENCE','<article class="resume-entry"><h3>樺品生活時尚股份有限公司<small>室內設計師</small></h3><p class="resume-meta">2021.08—PRESENT · TAIPEI</p><p>室內設計施工圖、裝配圖與發包圖說繪製整理；現場丈量、成本預估、工程施工監督、進度追蹤、工程協調與問題處理。</p></article><article class="resume-entry"><h3>發發設計有限公司<small>Creator／工業設計師</small></h3><p class="resume-meta">2019.09—2020.01 · TAIPEI</p><p>參與老年代步車、持續性正壓呼吸器與汽車維修工具燈設計，執行競品、法規與專利研究、易用性與造型發想、草模製作及測試。</p></article><article class="resume-entry"><h3>中國網龍網路有限公司<small>暑期工業設計實習生</small></h3><p class="resume-meta">2016.07—2016.09 · FUZHOU</p><p>參與 VR 會議設備設計，執行資料收集、概念發想、電腦建模、草模製作與測試。</p></article><article class="resume-entry"><h3>三點水文化創意<small>工業設計實習生</small></h3><p class="resume-meta">2013.10—2014.09 · TAIPEI</p><p>參與家具與居家用品專案，涵蓋資料收集、概念發想、造型設計與電腦建模。</p></article>'],
+    ['003','EDUCATION','<article class="resume-entry"><h3>私立實踐大學<small>工業產品設計系 · 大學畢業</small></h3><p class="resume-meta">2014.09—2018.06</p></article><article class="resume-entry"><h3>私立亞東技術學院<small>工商業設計系 · 四技肄業</small></h3><p class="resume-meta">2012.09—2014.06</p></article><article class="resume-entry"><h3>國立虎尾科技大學<small>機械設計工程系 · 大學肄業</small></h3><p class="resume-meta">2011.09—2012.06</p></article>'],
+    ['004','SKILLS','<dl class="resume-groups"><dt>INTERIOR</dt><dd>室內設計 · 現場丈量 · 施工圖與裝配圖 · 發包圖說 · 工程圖識圖與繪圖 · 竣工圖說 · 成本預估</dd><dt>PROJECT</dt><dd>工程施工監督 · 進度追蹤 · 工程協調與問題處理</dd><dt>PRODUCT & VISUAL</dt><dd>產品外型與包裝設計 · 2D／3D 製圖 · 視覺與排版設計 · 概念發想 · 草模製作與測試</dd></dl>'],
+    ['005','SOFTWARE','<dl class="resume-groups"><dt>3D & RENDERING</dt><dd>SketchUp · Enscape · KeyShot · Pro/E · SolidWorks · PTC Creo Elements/Direct · Alias Studio</dd><dt>DRAWING</dt><dd>AutoCAD · AutoCAD 2D</dd><dt>VISUAL & MEDIA</dt><dd>Photoshop · Illustrator · After Effects · Final Cut Pro X</dd><dt>WORKFLOW</dt><dd>PowerPoint · Excel · Codex · Claude Code</dd></dl>'],
+    ['006','AWARDS','<article class="resume-entry"><h3>臺北設計獎<small>金獎</small></h3><p class="resume-meta">2018</p></article><article class="resume-entry"><h3>臺灣國際學生創意大賽<small>金獎</small></h3><p class="resume-meta">2018</p></article>'],
+    ['007','CERTIFICATION','<article class="resume-entry"><h3>乙級電腦輔助機械製圖技術士<small>勞動部勞動力發展署技能檢定中心</small></h3></article>'],
+    ['008','CONTACT','<p class="resume-contact"><span>EMAIL</span><a href="mailto:yulife1289@gmail.com">yulife1289@gmail.com</a></p>']
   ];
-  view.innerHTML=`<section class="resume"><aside class="resume-aside reveal"><p class="dossier-label">CURRICULUM VITAE · 2026</p><img src="assets/profile.jpg" width="772" height="1161" alt="古捷宇個人創作肖像"><h1>古捷宇<small>JIE-YU GU</small></h1><p>Interior / Product / Visual Designer</p><dl><dt>LOCATION</dt><dd>Taiwan</dd><dt>AVAILABLE FOR</dt><dd>Selected commissions</dd><dt>LANGUAGES</dt><dd>國語 · 台語 · English</dd></dl></aside><div class="resume-content">${sections.map(([n,t,b],i)=>`<article class="dossier-section reveal" style="--i:${i}"><header><span>${n}</span><h2>${t}</h2></header><div>${b}</div></article>`).join('')}</div></section>`;
+  view.innerHTML=`<section class="resume"><aside class="resume-aside reveal"><p class="dossier-label">CURRICULUM VITAE · 2026</p><img src="assets/profile.jpg" width="772" height="1161" alt="古捷宇個人創作肖像"><h1>古捷宇<small>JIE-YU GU</small></h1><p>Interior Designer</p><dl><dt>LOCATION</dt><dd>Taipei Xinyi · Taiwan</dd><dt>OPEN TO</dt><dd>Full-time interior design roles</dd><dt>LANGUAGES</dt><dd>國語 · 台語 · English</dd></dl></aside><div class="resume-content">${sections.map(([n,t,b],i)=>`<article class="dossier-section reveal" style="--i:${i}"><header><span>${n}</span><h2>${t}</h2></header><div>${b}</div></article>`).join('')}</div></section>`;
 }
 
 function renderProject(slug){
