@@ -67,7 +67,7 @@ function makeReel(){
     items.forEach((el,i)=>{const d=i-progress,ad=Math.abs(d);
       if(ad>2.6){el.style.visibility='hidden';return}el.style.visibility='';
       if(reduce){el.style.transform=`translate(-50%,calc(-50% + ${d*100}vh))`;el.style.opacity=ad<.5?'1':'0';el.style.zIndex=String(100-Math.round(ad*10));return}
-      if(mobile){const cardHeight=innerWidth*.88*10/16,gap=Math.max(0,vh()*.46-cardHeight)*.8,y=d*(cardHeight+gap);el.style.transform=`translate(-50%,calc(-50% + ${y}px))`;el.style.filter='none';el.style.zIndex=String(100-Math.round(ad*10));el.style.opacity=ad>2.2?String(Math.max(0,(2.6-ad)/.4)):'1';return}
+      if(mobile){const cardHeight=innerWidth*.88*10/16,gap=Math.max(0,vh()*.46-cardHeight),y=d*(cardHeight+gap);el.style.transform=`translate(-50%,calc(-50% + ${y}px))`;el.style.filter='none';el.style.zIndex=String(100-Math.round(ad*10));el.style.opacity=ad>2.2?String(Math.max(0,(2.6-ad)/.4)):'1';return}
       const y=d*46,rot=Math.max(-maxTilt-4,Math.min(maxTilt+4,d*-maxTilt)),sc=Math.max(.72,1-ad*.12),br=Math.max(.4,1-ad*.34);
       el.style.transform=`translate(-50%,calc(-50% + ${y}vh)) perspective(1400px) rotateX(${rot}deg) scale(${sc})`;
       el.style.filter=`brightness(${br})`;el.style.zIndex=String(100-Math.round(ad*10));el.style.opacity=ad>2.2?String(Math.max(0,(2.6-ad)/.4)):'1';});
