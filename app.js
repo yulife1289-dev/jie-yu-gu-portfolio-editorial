@@ -59,7 +59,7 @@ function makeReel(){
   let layoutWidth=innerWidth,slotHeight=innerHeight,mobileStep=0;
   let raf=0,current=-1,snapTimer=0,rollTimer=0,hovering=false,targetIdx=Math.max(0,Math.min(total-1,Math.round(scrollY/slotHeight))),locked=false,unlockT=0,animating=false;
   const vh=()=>slotHeight,clampIdx=n=>Math.max(0,Math.min(total-1,n));
-  function measure(){slotHeight=innerHeight;if(mobile){const cardHeight=innerWidth*.88*10/16;mobileStep=(cardHeight+Math.max(0,slotHeight*.46-cardHeight))*1.1}}
+  function measure(){slotHeight=innerHeight;if(mobile){const cardHeight=innerWidth*.88*10/16,gap=Math.min(156,Math.max(132,innerWidth*.38));mobileStep=cardHeight+gap}}
   measure();
   function roll(el,oldText,newText){const old=document.createElement('span'),next=document.createElement('span');old.className='reel-old';old.setAttribute('aria-hidden','true');old.textContent=oldText;next.className='reel-new';next.textContent=newText;el.replaceChildren(old,next)}
   function setCard(n){if(n===current)return;const previous=current<0?null:state.projects[current],p=state.projects[n],num=String(PROJECT_NUMBERS[p.slug]).padStart(2,'0'),meta=`NO. ${num} · ${p.category} · ${p.status}`;
