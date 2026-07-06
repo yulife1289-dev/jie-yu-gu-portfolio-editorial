@@ -47,25 +47,10 @@ function imageAttrs(im,eager=false){return `src="${esc(im.src)}" width="${im.wid
 
 function renderProjects(){
   document.title='古捷宇｜Interior Design Portfolio';const total=state.projects.length;
-  if(mobileProjects.matches){renderMobileProjects(total);return}
   view.innerHTML=`<section class="reel" aria-label="作品索引" style="height:${total*100}vh"><div class="reel-stage"><p class="reel-side" aria-live="polite"><span class="reel-name"></span><span class="reel-meta"></span></p><div class="reel-track">${state.projects.map(reelItem).join('')}</div><p class="reel-brand" aria-hidden="true">Projects</p><p class="reel-count" aria-hidden="true"></p></div><span class="reel-cursor" aria-hidden="true">VIEW</span></section>`;
-  state.reel=watchProjectBreakpoint(makeReel());
+  state.reel=makeReel();
 }
 function reelItem(p,i){const cover=p.images[0];return `<a class="reel-item" data-i="${i}" href="#project/${esc(p.slug)}" aria-label="查看${esc(p.title)}案例"><span class="reel-frame"><img ${imageAttrs(cover,i<2)}><span class="reel-tap" aria-hidden="true">TAP TO OPEN</span></span></a>`}
-function renderMobileProjects(total){
-  view.innerHTML=`<section class="mobile-index" aria-label="作品索引"><p class="mobile-count" aria-live="polite">01 / ${String(total).padStart(2,'0')}</p><p class="mobile-brand" aria-hidden="true">Projects</p><div class="mobile-project-track" tabindex="0" aria-roledescription="carousel">${state.projects.map(mobileProject).join('')}</div></section>`;
-  state.reel=watchProjectBreakpoint(makeMobileProjects());
-}
-function mobileProject(p,i){const cover=p.images[0],num=String(PROJECT_NUMBERS[p.slug]).padStart(2,'0');return `<a class="mobile-project" data-mobile-i="${i}" href="#project/${esc(p.slug)}" aria-label="查看${esc(p.title)}案例"><span class="mobile-project-frame"><img ${imageAttrs(cover,i<2)}><span class="reel-tap" aria-hidden="true">TAP TO OPEN</span></span><span class="mobile-project-copy"><strong>${esc(p.title)}</strong><small>NO. ${num} · ${esc(p.category)} · ${esc(p.status)}</small></span></a>`}
-function makeMobileProjects(){
-  const track=view.querySelector('.mobile-project-track'),slides=[...view.querySelectorAll('.mobile-project')],count=view.querySelector('.mobile-count');let raf=0;
-  function frame(){raf=0;const width=track.clientWidth||1,progress=track.scrollLeft/width,current=Math.max(0,Math.min(slides.length-1,Math.round(progress)));slides.forEach((slide,i)=>{const distance=Math.abs(i-progress),copy=slide.querySelector('.mobile-project-copy');copy.style.opacity=reduceMotion.matches?'1':String(Math.max(0,1-distance*2));slide.setAttribute('aria-current',i===current?'true':'false')});count.textContent=`${String(current+1).padStart(2,'0')} / ${String(slides.length).padStart(2,'0')}`}
-  function onScroll(){if(!raf)raf=requestAnimationFrame(frame)}
-  function onKey(e){if(e.key!=='ArrowLeft'&&e.key!=='ArrowRight')return;e.preventDefault();const current=Math.round(track.scrollLeft/(track.clientWidth||1)),next=Math.max(0,Math.min(slides.length-1,current+(e.key==='ArrowRight'?1:-1)));track.scrollTo({left:next*track.clientWidth,behavior:reduceMotion.matches?'auto':'smooth'})}
-  track.addEventListener('scroll',onScroll,{passive:true});track.addEventListener('keydown',onKey);frame();
-  return{destroy(){track.removeEventListener('scroll',onScroll);track.removeEventListener('keydown',onKey);cancelAnimationFrame(raf)}};
-}
-function watchProjectBreakpoint(controller){let wrapped;const onChange=()=>{wrapped.destroy();state.reel=null;renderProjects()};mobileProjects.addEventListener('change',onChange);wrapped={destroy(){mobileProjects.removeEventListener('change',onChange);controller.destroy()}};return wrapped}
 function makeReel(){
   const stage=view.querySelector('.reel-stage'),items=[...view.querySelectorAll('.reel-item')];
   const side=view.querySelector('.reel-side'),nameEl=view.querySelector('.reel-name'),metaEl=view.querySelector('.reel-meta'),countEl=view.querySelector('.reel-count'),cursor=view.querySelector('.reel-cursor');
@@ -130,14 +115,26 @@ function renderProject(slug){
   const groups=distributeImages(p.images.slice(1));document.title=`${p.title}｜古捷宇作品集`;
   const sectionData=DEFAULT_SECTIONS.map((defaults,n)=>({...defaults,...(Array.isArray(p.sections)?p.sections[n]:p.sections?.[defaults.key])}));
   view.innerHTML=`<article class="case-study"><section class="case-hero"><img ${imageAttrs(cover,true)}><a class="case-back" href="#projects">← PROJECT INDEX</a><div class="case-hero-copy"><p>PROJECT ${num} · ${esc(p.category)} · ${esc(p.status)}</p><h1>${esc(p.title)}<small>${esc(p.en)}</small></h1></div></section><section class="case-brief reveal"><header><span>02</span><h2>BRIEF</h2><p>NO. ${num}<br>${esc(p.category)}<br>${esc(p.status)}</p></header><p>${esc(p.description)}</p></section>${sectionData.map((s,n)=>caseCarousel(p,groups[n],s,n+3)).join('')}<nav class="case-pager" aria-label="案例切換"><a class="previous" href="#project/${esc(prev.slug)}">← PREVIOUS · ${esc(prev.title)}</a><a class="next" href="#project/${esc(next.slug)}"><span>NEXT PROJECT</span><strong>${esc(next.title)}</strong><small>${esc(next.en)} →</small></a></nav></article>`;
-  view.querySelectorAll('.case-carousel').forEach(root=>bindCaseCarousel(root,p));
+  const roots=[...view.querySelectorAll('.case-carousel')],cleanups=[];
+  if(mobileProjects.matches)roots.forEach(root=>cleanups.push(bindMobileCaseCarousel(root,p)));else roots.forEach(root=>bindCaseCarousel(root,p));
+  state.reel=watchCaseBreakpoint(cleanups,()=>renderProject(slug));
 }
 function distributeImages(images){const n=images.length,groups=[];let start=0;for(let k=0;k<4;k++){const size=Math.ceil((n-start)/(4-k));groups.push(images.slice(start,start+size));start+=size}return groups}
 function caseCarousel(project,images,section,number){
   if(!images.length)return '';
   const first=images[0],ph=String(section.copy).includes('〔文案待補〕');
+  if(mobileProjects.matches)return `<section class="case-carousel mobile-case-carousel reveal"><header><span>${String(number).padStart(2,'0')}</span><h2>${esc(section.zh)}<small>${esc(section.en)}</small></h2><p class="${ph?'placeholder':''}">${esc(section.copy)}</p></header><div class="mobile-case-gallery"><div class="mobile-case-track" tabindex="0" aria-roledescription="carousel" aria-label="${esc(section.zh)}圖片輪播">${images.map((im,i)=>`<button class="mobile-case-slide" data-global="${project.images.indexOf(im)}" aria-label="放大第 ${i+1} 張圖片"><img ${imageAttrs(im,number<4&&i===0)}></button>`).join('')}</div><span class="mobile-case-count" aria-live="polite">01 / ${String(images.length).padStart(2,'0')}</span></div></section>`;
   return `<section class="case-carousel reveal"><header><span>${String(number).padStart(2,'0')}</span><h2>${esc(section.zh)}<small>${esc(section.en)}</small></h2><p class="${ph?'placeholder':''}">${esc(section.copy)}</p></header><div class="cc-stage" tabindex="0" aria-roledescription="carousel" aria-label="${esc(section.zh)}圖片輪播"><button class="cc-main" aria-label="放大目前圖片"><img ${imageAttrs(first,number<4)} data-cc-img></button><button class="cc-arrow cc-prev" aria-label="上一張圖片">‹</button><button class="cc-arrow cc-next" aria-label="下一張圖片">›</button><span class="cc-count" aria-live="polite">01 / ${String(images.length).padStart(2,'0')}</span></div><div class="cc-thumbs" aria-label="其他縮圖">${images.map((im,i)=>`<button class="cc-thumb${i===0?' active':''}" data-cc="${i}" data-global="${project.images.indexOf(im)}" aria-label="顯示第 ${i+1} 張圖片"><img src="${esc(im.src)}" alt="" loading="lazy"></button>`).join('')}</div></section>`;
 }
+function bindMobileCaseCarousel(root,project){
+  const track=root.querySelector('.mobile-case-track'),slides=[...root.querySelectorAll('.mobile-case-slide')],count=root.querySelector('.mobile-case-count');let raf=0,current=0;
+  function frame(){raf=0;const step=slides[1]?.offsetLeft-slides[0].offsetLeft||slides[0]?.offsetWidth||1;current=Math.max(0,Math.min(slides.length-1,Math.round(track.scrollLeft/step)));count.textContent=`${String(current+1).padStart(2,'0')} / ${String(slides.length).padStart(2,'0')}`;slides.forEach((slide,i)=>slide.setAttribute('aria-current',i===current?'true':'false'))}
+  function onScroll(){if(!raf)raf=requestAnimationFrame(frame)}
+  function onKey(e){if(e.key!=='ArrowLeft'&&e.key!=='ArrowRight')return;e.preventDefault();const next=Math.max(0,Math.min(slides.length-1,current+(e.key==='ArrowRight'?1:-1)));slides[next].scrollIntoView({behavior:reduceMotion.matches?'auto':'smooth',inline:'center',block:'nearest'})}
+  slides.forEach(slide=>slide.onclick=()=>openLightbox(project,+slide.dataset.global,slide));track.addEventListener('scroll',onScroll,{passive:true});track.addEventListener('keydown',onKey);frame();
+  return()=>{track.removeEventListener('scroll',onScroll);track.removeEventListener('keydown',onKey);cancelAnimationFrame(raf)};
+}
+function watchCaseBreakpoint(cleanups,rerender){let active=true;function destroy(){if(!active)return;active=false;mobileProjects.removeEventListener('change',onChange);cleanups.forEach(fn=>fn())}function onChange(){const top=scrollY;destroy();state.reel=null;rerender();scrollTo({top,behavior:'instant'})}mobileProjects.addEventListener('change',onChange);return{destroy}}
 function bindCaseCarousel(root,project){
   const stage=root.querySelector('.cc-stage'),mainBtn=root.querySelector('.cc-main'),img=root.querySelector('[data-cc-img]'),count=root.querySelector('.cc-count'),thumbs=[...root.querySelectorAll('.cc-thumb')];
   const imgs=thumbs.map(t=>project.images[+t.dataset.global]),len=thumbs.length;let idx=0;
