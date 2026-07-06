@@ -59,7 +59,7 @@ function makeReel(){
   let layoutWidth=innerWidth,slotHeight=innerHeight,mobileStep=0;
   let raf=0,current=-1,snapTimer=0,rollTimer=0,hovering=false,targetIdx=Math.max(0,Math.min(total-1,Math.round(scrollY/slotHeight))),locked=false,unlockT=0,animating=false;
   const vh=()=>slotHeight,clampIdx=n=>Math.max(0,Math.min(total-1,n));
-  function measure(){slotHeight=innerHeight;if(mobile){const cardHeight=innerWidth*.88*10/16;mobileStep=cardHeight+Math.max(0,slotHeight*.46-cardHeight)}}
+  function measure(){slotHeight=innerHeight;if(mobile){const cardHeight=innerWidth*.88*10/16;mobileStep=cardHeight+Math.max(0,slotHeight*.46-cardHeight)*1.1}}
   measure();
   function roll(el,oldText,newText){const old=document.createElement('span'),next=document.createElement('span');old.className='reel-old';old.setAttribute('aria-hidden','true');old.textContent=oldText;next.className='reel-new';next.textContent=newText;el.replaceChildren(old,next)}
   function setCard(n){if(n===current)return;const previous=current<0?null:state.projects[current],p=state.projects[n],num=String(PROJECT_NUMBERS[p.slug]).padStart(2,'0'),meta=`NO. ${num} · ${p.category} · ${p.status}`;
@@ -90,7 +90,7 @@ function makeReel(){
     stage.addEventListener('pointerleave',()=>{hovering=false;stage.classList.remove('cursor-on')});}
   items.forEach(el=>el.addEventListener('click',e=>{const i=+el.dataset.i;if(i!==current){e.preventDefault();goTo(i)}}));
   items.forEach(el=>el.addEventListener('focus',()=>{const i=+el.dataset.i;if(i!==current)goTo(i)}));
-  addEventListener('scroll',onScroll,{passive:true});addEventListener('resize',onResize);addEventListener('wheel',onWheel,{passive:false});addEventListener('keydown',onKey);if('onscrollend'in window&&!reduce)addEventListener('scrollend',snap);frame();
+  addEventListener('scroll',onScroll,{passive:true});addEventListener('resize',onResize);addEventListener('wheel',onWheel,{passive:false});addEventListener('keydown',onKey);if('onscrollend'in window&&!reduce&&!mobile)addEventListener('scrollend',snap);frame();
   return{destroy(){removeEventListener('scroll',onScroll);removeEventListener('resize',onResize);removeEventListener('wheel',onWheel);removeEventListener('keydown',onKey);removeEventListener('scrollend',snap);cancelAnimationFrame(raf);clearTimeout(snapTimer);clearTimeout(rollTimer);clearTimeout(unlockT)}};
 }
 
