@@ -54,9 +54,12 @@ function makeReel(){
   const stage=view.querySelector('.reel-stage'),items=[...view.querySelectorAll('.reel-item')];
   const side=view.querySelector('.reel-side'),nameEl=view.querySelector('.reel-name'),metaEl=view.querySelector('.reel-meta'),countEl=view.querySelector('.reel-count'),cursor=view.querySelector('.reel-cursor');
   const total=items.length,reduce=reduceMotion.matches,touch=matchMedia('(hover:none)').matches;
-  const mobile=touch&&matchMedia('(max-width:520px)').matches,maxTilt=touch?35:58;
-  let raf=0,current=-1,snapTimer=0,rollTimer=0,hovering=false,targetIdx=Math.max(0,Math.min(total-1,Math.round(scrollY/innerHeight))),locked=false,unlockT=0,animating=false;
-  const vh=()=>innerHeight,clampIdx=n=>Math.max(0,Math.min(total-1,n));
+  const mobile=matchMedia('(max-width:520px)').matches,maxTilt=touch?35:58;
+  let layoutWidth=innerWidth,slotHeight=innerHeight,mobileStep=0;
+  let raf=0,current=-1,snapTimer=0,rollTimer=0,hovering=false,targetIdx=Math.max(0,Math.min(total-1,Math.round(scrollY/slotHeight))),locked=false,unlockT=0,animating=false;
+  const vh=()=>slotHeight,clampIdx=n=>Math.max(0,Math.min(total-1,n));
+  function measure(){slotHeight=innerHeight;if(mobile){const cardHeight=innerWidth*.88*10/16;mobileStep=cardHeight+Math.max(0,slotHeight*.46-cardHeight)}}
+  measure();
   function roll(el,oldText,newText){const old=document.createElement('span'),next=document.createElement('span');old.className='reel-old';old.setAttribute('aria-hidden','true');old.textContent=oldText;next.className='reel-new';next.textContent=newText;el.replaceChildren(old,next)}
   function setCard(n){if(n===current)return;const previous=current<0?null:state.projects[current],p=state.projects[n],num=String(PROJECT_NUMBERS[p.slug]).padStart(2,'0'),meta=`NO. ${num} · ${p.category} · ${p.status}`;
     clearTimeout(rollTimer);current=n;
@@ -67,12 +70,13 @@ function makeReel(){
     items.forEach((el,i)=>{const d=i-progress,ad=Math.abs(d);
       if(ad>2.6){el.style.visibility='hidden';return}el.style.visibility='';
       if(reduce){el.style.transform=`translate(-50%,calc(-50% + ${d*100}vh))`;el.style.opacity=ad<.5?'1':'0';el.style.zIndex=String(100-Math.round(ad*10));return}
-      if(mobile){const cardHeight=innerWidth*.88*10/16,gap=Math.max(0,vh()*.46-cardHeight),y=d*(cardHeight+gap);el.style.transform=`translate(-50%,calc(-50% + ${y}px))`;el.style.filter='none';el.style.zIndex=String(100-Math.round(ad*10));el.style.opacity=ad>2.2?String(Math.max(0,(2.6-ad)/.4)):'1';return}
+      if(mobile){const y=d*mobileStep;el.style.transform=`translate(-50%,calc(-50% + ${y}px))`;el.style.filter='none';el.style.zIndex=String(100-Math.round(ad*10));el.style.opacity=ad>2.2?String(Math.max(0,(2.6-ad)/.4)):'1';return}
       const y=d*46,rot=Math.max(-maxTilt-4,Math.min(maxTilt+4,d*-maxTilt)),sc=Math.max(.72,1-ad*.12),br=Math.max(.4,1-ad*.34);
       el.style.transform=`translate(-50%,calc(-50% + ${y}vh)) perspective(1400px) rotateX(${rot}deg) scale(${sc})`;
       el.style.filter=`brightness(${br})`;el.style.zIndex=String(100-Math.round(ad*10));el.style.opacity=ad>2.2?String(Math.max(0,(2.6-ad)/.4)):'1';});
     setCard(focus);}
   function onScroll(){if(!raf)raf=requestAnimationFrame(frame);if(!reduce&&!mobile){clearTimeout(snapTimer);snapTimer=setTimeout(snap,150)}}
+  function onResize(){if(!mobile||Math.abs(innerWidth-layoutWidth)>1){layoutWidth=innerWidth;measure()}onScroll()}
   function goTo(t){targetIdx=clampIdx(t);animating=true;scrollTo({top:targetIdx*vh(),behavior:reduce?'auto':'smooth'})}
   function snap(){const last=(total-1)*vh();animating=false;if(scrollY>last+1)return;const idx=clampIdx(Math.round(scrollY/vh()));targetIdx=idx;const top=idx*vh();if(Math.abs(top-scrollY)>1){animating=true;scrollTo({top,behavior:reduce?'auto':'smooth'})}}
   function step(dir){const base=animating?targetIdx:clampIdx(Math.round(scrollY/vh()));goTo(base+dir)}
@@ -85,8 +89,8 @@ function makeReel(){
     stage.addEventListener('pointerleave',()=>{hovering=false;stage.classList.remove('cursor-on')});}
   items.forEach(el=>el.addEventListener('click',e=>{const i=+el.dataset.i;if(i!==current){e.preventDefault();goTo(i)}}));
   items.forEach(el=>el.addEventListener('focus',()=>{const i=+el.dataset.i;if(i!==current)goTo(i)}));
-  addEventListener('scroll',onScroll,{passive:true});addEventListener('resize',onScroll);addEventListener('wheel',onWheel,{passive:false});addEventListener('keydown',onKey);if('onscrollend'in window&&!reduce)addEventListener('scrollend',snap);frame();
-  return{destroy(){removeEventListener('scroll',onScroll);removeEventListener('resize',onScroll);removeEventListener('wheel',onWheel);removeEventListener('keydown',onKey);removeEventListener('scrollend',snap);cancelAnimationFrame(raf);clearTimeout(snapTimer);clearTimeout(rollTimer);clearTimeout(unlockT)}};
+  addEventListener('scroll',onScroll,{passive:true});addEventListener('resize',onResize);addEventListener('wheel',onWheel,{passive:false});addEventListener('keydown',onKey);if('onscrollend'in window&&!reduce)addEventListener('scrollend',snap);frame();
+  return{destroy(){removeEventListener('scroll',onScroll);removeEventListener('resize',onResize);removeEventListener('wheel',onWheel);removeEventListener('keydown',onKey);removeEventListener('scrollend',snap);cancelAnimationFrame(raf);clearTimeout(snapTimer);clearTimeout(rollTimer);clearTimeout(unlockT)}};
 }
 
 function renderResume(){
