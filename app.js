@@ -52,25 +52,27 @@ function renderProjects(){
 function reelItem(p,i){const cover=p.images[0];return `<a class="reel-item" data-i="${i}" href="#project/${esc(p.slug)}" aria-label="查看${esc(p.title)}案例"><span class="reel-frame"><img ${imageAttrs(cover,i<2)}><span class="reel-tap" aria-hidden="true">TAP TO OPEN</span></span></a>`}
 function makeReel(){
   const stage=view.querySelector('.reel-stage'),items=[...view.querySelectorAll('.reel-item')];
-  const nameEl=view.querySelector('.reel-name'),metaEl=view.querySelector('.reel-meta'),countEl=view.querySelector('.reel-count'),cursor=view.querySelector('.reel-cursor');
+  const side=view.querySelector('.reel-side'),nameEl=view.querySelector('.reel-name'),metaEl=view.querySelector('.reel-meta'),countEl=view.querySelector('.reel-count'),cursor=view.querySelector('.reel-cursor');
   const total=items.length,reduce=reduceMotion.matches,touch=matchMedia('(hover:none)').matches;
-  const maxTilt=touch?35:58;
+  const mobile=touch&&matchMedia('(max-width:520px)').matches,maxTilt=touch?35:58;
   let raf=0,current=-1,snapTimer=0,rollTimer=0,hovering=false,targetIdx=Math.max(0,Math.min(total-1,Math.round(scrollY/innerHeight))),locked=false,unlockT=0,animating=false;
   const vh=()=>innerHeight,clampIdx=n=>Math.max(0,Math.min(total-1,n));
   function roll(el,oldText,newText){const old=document.createElement('span'),next=document.createElement('span');old.className='reel-old';old.setAttribute('aria-hidden','true');old.textContent=oldText;next.className='reel-new';next.textContent=newText;el.replaceChildren(old,next)}
   function setCard(n){if(n===current)return;const previous=current<0?null:state.projects[current],p=state.projects[n],num=String(PROJECT_NUMBERS[p.slug]).padStart(2,'0'),meta=`NO. ${num} · ${p.category} · ${p.status}`;
     clearTimeout(rollTimer);current=n;
-    if(previous&&!reduce){const oldNum=String(PROJECT_NUMBERS[previous.slug]).padStart(2,'0');roll(nameEl,previous.title,p.title);roll(metaEl,`NO. ${oldNum} · ${previous.category} · ${previous.status}`,meta);rollTimer=setTimeout(()=>{nameEl.textContent=p.title;metaEl.textContent=meta},450)}else{nameEl.textContent=p.title;metaEl.textContent=meta}
+    if(previous&&!reduce&&!mobile){const oldNum=String(PROJECT_NUMBERS[previous.slug]).padStart(2,'0');roll(nameEl,previous.title,p.title);roll(metaEl,`NO. ${oldNum} · ${previous.category} · ${previous.status}`,meta);rollTimer=setTimeout(()=>{nameEl.textContent=p.title;metaEl.textContent=meta},450)}else{nameEl.textContent=p.title;metaEl.textContent=meta}
     countEl.textContent=`${String(n+1).padStart(2,'0')} / ${String(total).padStart(2,'0')}`;items.forEach((el,i)=>el.setAttribute('aria-current',i===n?'true':'false'));}
-  function frame(){raf=0;const progress=scrollY/vh();const focus=Math.round(progress);
+  function frame(){raf=0;const progress=scrollY/vh(),focus=clampIdx(Math.round(progress));
+    if(mobile)side.style.opacity=String(Math.max(0,1-Math.abs(progress-focus)*2));
     items.forEach((el,i)=>{const d=i-progress,ad=Math.abs(d);
       if(ad>2.6){el.style.visibility='hidden';return}el.style.visibility='';
       if(reduce){el.style.transform=`translate(-50%,calc(-50% + ${d*100}vh))`;el.style.opacity=ad<.5?'1':'0';el.style.zIndex=String(100-Math.round(ad*10));return}
+      if(mobile){const cardHeight=innerWidth*.88*10/16,gap=Math.max(0,vh()*.46-cardHeight)*.8,y=d*(cardHeight+gap);el.style.transform=`translate(-50%,calc(-50% + ${y}px))`;el.style.filter='none';el.style.zIndex=String(100-Math.round(ad*10));el.style.opacity=ad>2.2?String(Math.max(0,(2.6-ad)/.4)):'1';return}
       const y=d*46,rot=Math.max(-maxTilt-4,Math.min(maxTilt+4,d*-maxTilt)),sc=Math.max(.72,1-ad*.12),br=Math.max(.4,1-ad*.34);
       el.style.transform=`translate(-50%,calc(-50% + ${y}vh)) perspective(1400px) rotateX(${rot}deg) scale(${sc})`;
       el.style.filter=`brightness(${br})`;el.style.zIndex=String(100-Math.round(ad*10));el.style.opacity=ad>2.2?String(Math.max(0,(2.6-ad)/.4)):'1';});
-    setCard(Math.max(0,Math.min(total-1,focus)));}
-  function onScroll(){if(!raf)raf=requestAnimationFrame(frame);if(!reduce){clearTimeout(snapTimer);snapTimer=setTimeout(snap,150)}}
+    setCard(focus);}
+  function onScroll(){if(!raf)raf=requestAnimationFrame(frame);if(!reduce&&!mobile){clearTimeout(snapTimer);snapTimer=setTimeout(snap,150)}}
   function goTo(t){targetIdx=clampIdx(t);animating=true;scrollTo({top:targetIdx*vh(),behavior:reduce?'auto':'smooth'})}
   function snap(){const last=(total-1)*vh();animating=false;if(scrollY>last+1)return;const idx=clampIdx(Math.round(scrollY/vh()));targetIdx=idx;const top=idx*vh();if(Math.abs(top-scrollY)>1){animating=true;scrollTo({top,behavior:reduce?'auto':'smooth'})}}
   function step(dir){const base=animating?targetIdx:clampIdx(Math.round(scrollY/vh()));goTo(base+dir)}
