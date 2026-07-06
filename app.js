@@ -9,6 +9,7 @@ const state={projects:[],gallery:null,index:0,opener:null,observer:null,transiti
 const view=document.querySelector('#view');
 const mask=document.querySelector('.transition-mask');
 const reduceMotion=matchMedia('(prefers-reduced-motion: reduce)');
+const mobileProjects=matchMedia('(max-width: 520px)');
 const esc=s=>String(s??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
 
 async function init(){
@@ -46,10 +47,25 @@ function imageAttrs(im,eager=false){return `src="${esc(im.src)}" width="${im.wid
 
 function renderProjects(){
   document.title='古捷宇｜Interior Design Portfolio';const total=state.projects.length;
+  if(mobileProjects.matches){renderMobileProjects(total);return}
   view.innerHTML=`<section class="reel" aria-label="作品索引" style="height:${total*100}vh"><div class="reel-stage"><p class="reel-side" aria-live="polite"><span class="reel-name"></span><span class="reel-meta"></span></p><div class="reel-track">${state.projects.map(reelItem).join('')}</div><p class="reel-brand" aria-hidden="true">Projects</p><p class="reel-count" aria-hidden="true"></p></div><span class="reel-cursor" aria-hidden="true">VIEW</span></section>`;
-  state.reel=makeReel();
+  state.reel=watchProjectBreakpoint(makeReel());
 }
 function reelItem(p,i){const cover=p.images[0];return `<a class="reel-item" data-i="${i}" href="#project/${esc(p.slug)}" aria-label="查看${esc(p.title)}案例"><span class="reel-frame"><img ${imageAttrs(cover,i<2)}><span class="reel-tap" aria-hidden="true">TAP TO OPEN</span></span></a>`}
+function renderMobileProjects(total){
+  view.innerHTML=`<section class="mobile-index" aria-label="作品索引"><p class="mobile-count" aria-live="polite">01 / ${String(total).padStart(2,'0')}</p><p class="mobile-brand" aria-hidden="true">Projects</p><div class="mobile-project-track" tabindex="0" aria-roledescription="carousel">${state.projects.map(mobileProject).join('')}</div></section>`;
+  state.reel=watchProjectBreakpoint(makeMobileProjects());
+}
+function mobileProject(p,i){const cover=p.images[0],num=String(PROJECT_NUMBERS[p.slug]).padStart(2,'0');return `<a class="mobile-project" data-mobile-i="${i}" href="#project/${esc(p.slug)}" aria-label="查看${esc(p.title)}案例"><span class="mobile-project-frame"><img ${imageAttrs(cover,i<2)}><span class="reel-tap" aria-hidden="true">TAP TO OPEN</span></span><span class="mobile-project-copy"><strong>${esc(p.title)}</strong><small>NO. ${num} · ${esc(p.category)} · ${esc(p.status)}</small></span></a>`}
+function makeMobileProjects(){
+  const track=view.querySelector('.mobile-project-track'),slides=[...view.querySelectorAll('.mobile-project')],count=view.querySelector('.mobile-count');let raf=0;
+  function frame(){raf=0;const width=track.clientWidth||1,progress=track.scrollLeft/width,current=Math.max(0,Math.min(slides.length-1,Math.round(progress)));slides.forEach((slide,i)=>{const distance=Math.abs(i-progress),copy=slide.querySelector('.mobile-project-copy');copy.style.opacity=reduceMotion.matches?'1':String(Math.max(0,1-distance*2));slide.setAttribute('aria-current',i===current?'true':'false')});count.textContent=`${String(current+1).padStart(2,'0')} / ${String(slides.length).padStart(2,'0')}`}
+  function onScroll(){if(!raf)raf=requestAnimationFrame(frame)}
+  function onKey(e){if(e.key!=='ArrowLeft'&&e.key!=='ArrowRight')return;e.preventDefault();const current=Math.round(track.scrollLeft/(track.clientWidth||1)),next=Math.max(0,Math.min(slides.length-1,current+(e.key==='ArrowRight'?1:-1)));track.scrollTo({left:next*track.clientWidth,behavior:reduceMotion.matches?'auto':'smooth'})}
+  track.addEventListener('scroll',onScroll,{passive:true});track.addEventListener('keydown',onKey);frame();
+  return{destroy(){track.removeEventListener('scroll',onScroll);track.removeEventListener('keydown',onKey);cancelAnimationFrame(raf)}};
+}
+function watchProjectBreakpoint(controller){let wrapped;const onChange=()=>{wrapped.destroy();state.reel=null;renderProjects()};mobileProjects.addEventListener('change',onChange);wrapped={destroy(){mobileProjects.removeEventListener('change',onChange);controller.destroy()}};return wrapped}
 function makeReel(){
   const stage=view.querySelector('.reel-stage'),items=[...view.querySelectorAll('.reel-item')];
   const side=view.querySelector('.reel-side'),nameEl=view.querySelector('.reel-name'),metaEl=view.querySelector('.reel-meta'),countEl=view.querySelector('.reel-count'),cursor=view.querySelector('.reel-cursor');
