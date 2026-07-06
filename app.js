@@ -90,7 +90,7 @@ function makeReel(){
     stage.addEventListener('pointerleave',()=>{hovering=false;stage.classList.remove('cursor-on')});}
   items.forEach(el=>el.addEventListener('click',e=>{const i=+el.dataset.i;if(i!==current){e.preventDefault();goTo(i)}}));
   items.forEach(el=>el.addEventListener('focus',()=>{const i=+el.dataset.i;if(i!==current)goTo(i)}));
-  addEventListener('scroll',onScroll,{passive:true});addEventListener('resize',onResize);addEventListener('wheel',onWheel,{passive:false});addEventListener('keydown',onKey);if('onscrollend'in window&&!reduce&&!mobile)addEventListener('scrollend',snap);frame();
+  addEventListener('scroll',onScroll,{passive:true});addEventListener('resize',onResize);addEventListener('wheel',onWheel,{passive:false});addEventListener('keydown',onKey);if('onscrollend'in window&&!reduce)addEventListener('scrollend',snap);frame();
   return{destroy(){removeEventListener('scroll',onScroll);removeEventListener('resize',onResize);removeEventListener('wheel',onWheel);removeEventListener('keydown',onKey);removeEventListener('scrollend',snap);cancelAnimationFrame(raf);clearTimeout(snapTimer);clearTimeout(rollTimer);clearTimeout(unlockT)}};
 }
 
