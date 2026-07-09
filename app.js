@@ -5,12 +5,14 @@ const DEFAULT_SECTIONS=[
   {key:'lighting',zh:'照明規劃',en:'LIGHTING STRATEGY',copy:'〔文案待補〕自然光與人工照明的層次將於此處補充。'},
   {key:'details',zh:'細部',en:'DETAILS',copy:'〔文案待補〕收邊、五金與客製細節將於此處補充。'}
 ];
-const state={projects:[],gallery:null,index:0,opener:null,observer:null,transitioning:false,pending:false,reel:null};
+const state={projects:[],gallery:null,index:0,opener:null,observer:null,transitioning:false,pending:false,reel:null,lastPage:null,projectsScroll:0};
 const view=document.querySelector('#view');
 const mask=document.querySelector('.transition-mask');
 const reduceMotion=matchMedia('(prefers-reduced-motion: reduce)');
-const mobileProjects=matchMedia('(max-width: 520px)');
 const esc=s=>String(s??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
+const preloaded=new Set();
+function preloadImg(src){if(!src||preloaded.has(src))return;preloaded.add(src);const i=new Image();i.src=src}
+function preloadAround(images,idx){const len=images.length;if(len<2)return;preloadImg(images[(idx+1)%len].src);preloadImg(images[(idx-1+len)%len].src)}
 
 async function init(){
   const res=await fetch('projects.json');
@@ -25,7 +27,7 @@ function bindImageProtection(){
   document.addEventListener('dragstart',e=>{if(e.target.closest('img'))e.preventDefault()});
 }
 function route(){const h=decodeURIComponent(location.hash||'#projects');if(h==='#resume')return{page:'resume'};if(h.startsWith('#project/'))return{page:'project',slug:h.slice(9)};return{page:'projects'}}
-function setNav(page){document.querySelectorAll('[data-nav]').forEach(a=>{const active=a.dataset.nav===page;a.classList.toggle('active',active);if(active)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current')});document.querySelector('.site-header').hidden=page==='project'}
+function setNav(page){const nav=page==='project'?'projects':page;document.querySelectorAll('[data-nav]').forEach(a=>{const active=a.dataset.nav===nav;a.classList.toggle('active',active);if(active)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current')})}
 function transitionRender(){
   if(reduceMotion.matches){swapView();return}
   if(state.transitioning){state.pending=true;return}
@@ -35,9 +37,12 @@ function transitionRender(){
 }
 function finishTransition(){mask.classList.remove('is-leaving');state.transitioning=false;if(state.pending){state.pending=false;transitionRender()}}
 function swapView(shouldFocus=true){
-  closeLightbox();state.observer?.disconnect();state.reel?.destroy();state.reel=null;const r=route();setNav(r.page);
+  closeLightbox();state.observer?.disconnect();state.reel?.destroy();state.reel=null;
+  if(state.lastPage==='projects')state.projectsScroll=scrollY;
+  const r=route();setNav(r.page);
   if(r.page==='resume')renderResume();else if(r.page==='project')renderProject(r.slug);else renderProjects();
-  scrollTo({top:0,left:0,behavior:'instant'});requestAnimationFrame(()=>{if(shouldFocus)view.focus({preventScroll:true});bindReveals()});
+  scrollTo({top:r.page==='projects'?state.projectsScroll:0,left:0,behavior:'instant'});
+  state.lastPage=r.page;requestAnimationFrame(()=>{if(shouldFocus)view.focus({preventScroll:true});bindReveals()});
 }
 function bindReveals(){
   const els=[...view.querySelectorAll('.reveal')];if(reduceMotion.matches){els.forEach(el=>el.classList.add('in'));return}
@@ -115,40 +120,42 @@ function renderProject(slug){
   const groups=distributeImages(p.images.slice(1));document.title=`${p.title}｜古捷宇作品集`;
   const sectionData=DEFAULT_SECTIONS.map((defaults,n)=>({...defaults,...(Array.isArray(p.sections)?p.sections[n]:p.sections?.[defaults.key])}));
   view.innerHTML=`<article class="case-study"><section class="case-hero"><img ${imageAttrs(cover,true)}><a class="case-back" href="#projects">← PROJECT INDEX</a><div class="case-hero-copy"><p>PROJECT ${num} · ${esc(p.category)} · ${esc(p.status)}</p><h1>${esc(p.title)}<small>${esc(p.en)}</small></h1></div></section><section class="case-brief reveal"><header><span>02</span><h2>BRIEF</h2><p>NO. ${num}<br>${esc(p.category)}<br>${esc(p.status)}</p></header><p>${esc(p.description)}</p></section>${sectionData.map((s,n)=>caseCarousel(p,groups[n],s,n+3)).join('')}<nav class="case-pager" aria-label="案例切換"><a class="previous" href="#project/${esc(prev.slug)}">← PREVIOUS · ${esc(prev.title)}</a><a class="next" href="#project/${esc(next.slug)}"><span>NEXT PROJECT</span><strong>${esc(next.title)}</strong><small>${esc(next.en)} →</small></a></nav></article>`;
-  const roots=[...view.querySelectorAll('.case-carousel')],cleanups=[];
-  if(mobileProjects.matches)roots.forEach(root=>cleanups.push(bindMobileCaseCarousel(root,p)));else roots.forEach(root=>bindCaseCarousel(root,p));
-  state.reel=watchCaseBreakpoint(cleanups,()=>renderProject(slug));
+  const cleanups=[...view.querySelectorAll('.case-strip')].map(root=>bindCaseStrip(root,p));
+  state.reel={destroy(){cleanups.forEach(fn=>fn&&fn())}};
 }
 function distributeImages(images){const n=images.length,groups=[];let start=0;for(let k=0;k<4;k++){const size=Math.ceil((n-start)/(4-k));groups.push(images.slice(start,start+size));start+=size}return groups}
 function caseCarousel(project,images,section,number){
   if(!images.length)return '';
-  const first=images[0],ph=String(section.copy).includes('〔文案待補〕');
-  if(mobileProjects.matches)return `<section class="case-carousel mobile-case-carousel reveal"><header><span>${String(number).padStart(2,'0')}</span><h2>${esc(section.zh)}<small>${esc(section.en)}</small></h2><p class="${ph?'placeholder':''}">${esc(section.copy)}</p></header><div class="mobile-case-gallery"><div class="mobile-case-track" tabindex="0" aria-roledescription="carousel" aria-label="${esc(section.zh)}圖片輪播">${images.map((im,i)=>`<button class="mobile-case-slide" data-global="${project.images.indexOf(im)}" aria-label="放大第 ${i+1} 張圖片"><img ${imageAttrs(im,number<4&&i===0)}></button>`).join('')}</div><span class="mobile-case-count" aria-live="polite">01 / ${String(images.length).padStart(2,'0')}</span></div></section>`;
-  return `<section class="case-carousel reveal"><header><span>${String(number).padStart(2,'0')}</span><h2>${esc(section.zh)}<small>${esc(section.en)}</small></h2><p class="${ph?'placeholder':''}">${esc(section.copy)}</p></header><div class="cc-stage" tabindex="0" aria-roledescription="carousel" aria-label="${esc(section.zh)}圖片輪播"><button class="cc-main" aria-label="放大目前圖片"><img ${imageAttrs(first,number<4)} data-cc-img></button><button class="cc-arrow cc-prev" aria-label="上一張圖片">‹</button><button class="cc-arrow cc-next" aria-label="下一張圖片">›</button><span class="cc-count" aria-live="polite">01 / ${String(images.length).padStart(2,'0')}</span></div><div class="cc-thumbs" aria-label="其他縮圖">${images.map((im,i)=>`<button class="cc-thumb${i===0?' active':''}" data-cc="${i}" data-global="${project.images.indexOf(im)}" aria-label="顯示第 ${i+1} 張圖片"><img src="${esc(im.src)}" alt="" loading="lazy"></button>`).join('')}</div></section>`;
+  const ph=String(section.copy).includes('〔文案待補〕');
+  return `<section class="case-carousel reveal"><header><span>${String(number).padStart(2,'0')}</span><h2>${esc(section.zh)}<small>${esc(section.en)}</small></h2><p class="${ph?'placeholder':''}">${esc(section.copy)}</p></header><div class="case-strip"><div class="strip-track" tabindex="0" aria-roledescription="carousel" aria-label="${esc(section.zh)}圖片輪播，拖曳瀏覽，點擊放大">${images.map((im,i)=>`<button class="strip-item" data-global="${project.images.indexOf(im)}" aria-label="放大第 ${i+1} 張圖片，共 ${images.length} 張"><img ${imageAttrs(im,number<4&&i===0)}></button>`).join('')}</div><div class="strip-progress" aria-hidden="true"><span></span></div><div class="strip-cursor" aria-hidden="true">DRAG</div></div></section>`;
 }
-function bindMobileCaseCarousel(root,project){
-  const track=root.querySelector('.mobile-case-track'),slides=[...root.querySelectorAll('.mobile-case-slide')],count=root.querySelector('.mobile-case-count');let raf=0,current=0;
-  function frame(){raf=0;const step=slides[1]?.offsetLeft-slides[0].offsetLeft||slides[0]?.offsetWidth||1;current=Math.max(0,Math.min(slides.length-1,Math.round(track.scrollLeft/step)));count.textContent=`${String(current+1).padStart(2,'0')} / ${String(slides.length).padStart(2,'0')}`;slides.forEach((slide,i)=>slide.setAttribute('aria-current',i===current?'true':'false'))}
-  function onScroll(){if(!raf)raf=requestAnimationFrame(frame)}
-  function onKey(e){if(e.key!=='ArrowLeft'&&e.key!=='ArrowRight')return;e.preventDefault();const next=Math.max(0,Math.min(slides.length-1,current+(e.key==='ArrowRight'?1:-1)));slides[next].scrollIntoView({behavior:reduceMotion.matches?'auto':'smooth',inline:'center',block:'nearest'})}
-  slides.forEach(slide=>slide.onclick=()=>openLightbox(project,+slide.dataset.global,slide));track.addEventListener('scroll',onScroll,{passive:true});track.addEventListener('keydown',onKey);frame();
-  return()=>{track.removeEventListener('scroll',onScroll);track.removeEventListener('keydown',onKey);cancelAnimationFrame(raf)};
-}
-function watchCaseBreakpoint(cleanups,rerender){let active=true;function destroy(){if(!active)return;active=false;mobileProjects.removeEventListener('change',onChange);cleanups.forEach(fn=>fn())}function onChange(){const top=scrollY;destroy();state.reel=null;rerender();scrollTo({top,behavior:'instant'})}mobileProjects.addEventListener('change',onChange);return{destroy}}
-function bindCaseCarousel(root,project){
-  const stage=root.querySelector('.cc-stage'),mainBtn=root.querySelector('.cc-main'),img=root.querySelector('[data-cc-img]'),count=root.querySelector('.cc-count'),thumbs=[...root.querySelectorAll('.cc-thumb')];
-  const imgs=thumbs.map(t=>project.images[+t.dataset.global]),len=thumbs.length;let idx=0;
-  function show(n){idx=(n+len)%len;const im=imgs[idx];img.src=im.src;img.width=im.width;img.height=im.height;img.alt=im.alt;count.textContent=`${String(idx+1).padStart(2,'0')} / ${String(len).padStart(2,'0')}`;thumbs.forEach((t,i)=>{t.classList.toggle('active',i===idx);t.setAttribute('aria-current',i===idx?'true':'false')});thumbs[idx].scrollIntoView({behavior:reduceMotion.matches?'auto':'smooth',inline:'center',block:'nearest'})}
-  root.querySelector('.cc-prev').onclick=()=>show(idx-1);root.querySelector('.cc-next').onclick=()=>show(idx+1);
-  thumbs.forEach((t,i)=>t.onclick=()=>show(i));
-  mainBtn.onclick=()=>openLightbox(project,+thumbs[idx].dataset.global,mainBtn);
-  stage.addEventListener('keydown',e=>{if(e.key==='ArrowLeft'){e.preventDefault();show(idx-1)}else if(e.key==='ArrowRight'){e.preventDefault();show(idx+1)}});
-  let x=0;stage.addEventListener('touchstart',e=>x=e.changedTouches[0].clientX,{passive:true});stage.addEventListener('touchend',e=>{const d=e.changedTouches[0].clientX-x;if(Math.abs(d)>45)show(idx+(d<0?1:-1))},{passive:true});
+function bindCaseStrip(root,project){
+  const track=root.querySelector('.strip-track'),bar=root.querySelector('.strip-progress span'),cursor=root.querySelector('.strip-cursor');
+  const fine=matchMedia('(pointer:fine)').matches,reduce=reduceMotion.matches;
+  let raf=0,iraf=0;
+  const updateProgress=()=>{const max=track.scrollWidth-track.clientWidth;bar.style.transform=`scaleX(${max>0?track.scrollLeft/max:0})`};
+  const onScroll=()=>{if(!raf)raf=requestAnimationFrame(()=>{raf=0;updateProgress()})};
+  track.addEventListener('scroll',onScroll,{passive:true});requestAnimationFrame(updateProgress);
+  const onKey=e=>{if(e.key!=='ArrowLeft'&&e.key!=='ArrowRight')return;e.preventDefault();const item=track.querySelector('.strip-item'),step=item?item.getBoundingClientRect().width+12:track.clientWidth*.8;track.scrollBy({left:e.key==='ArrowRight'?step:-step,behavior:reduce?'auto':'smooth'})};
+  track.addEventListener('keydown',onKey);
+  const items=[...root.querySelectorAll('.strip-item')];
+  const onItemClick=e=>{const b=e.currentTarget;if(e.detail===0)openLightbox(project,+b.dataset.global,b)};
+  items.forEach(b=>b.addEventListener('click',onItemClick));
+  const onCursorMove=e=>{if(e.pointerType!=='mouse')return;cursor.style.transform=`translate3d(${e.clientX}px,${e.clientY}px,0)`;root.classList.add('cursor-on')};
+  const onCursorLeave=()=>root.classList.remove('cursor-on');
+  if(fine){root.classList.add('has-cursor');root.addEventListener('pointermove',onCursorMove);root.addEventListener('pointerleave',onCursorLeave)}
+  let down=false,moved=false,startX=0,startScroll=0,lastX=0,vx=0,target=null;
+  const onDown=e=>{if(e.pointerType==='mouse'&&e.button!==0)return;down=true;moved=false;startX=lastX=e.clientX;startScroll=track.scrollLeft;vx=0;target=e.target.closest('.strip-item');cancelAnimationFrame(iraf);if(e.pointerType==='mouse'){track.setPointerCapture(e.pointerId);root.classList.add('dragging')}};
+  const onMove=e=>{if(!down)return;const dx=e.clientX-startX;if(Math.abs(dx)>8)moved=true;vx=e.clientX-lastX;lastX=e.clientX;if(e.pointerType==='mouse')track.scrollLeft=startScroll-dx};
+  const onUp=e=>{if(!down)return;down=false;root.classList.remove('dragging');if(e.pointerType==='mouse'){try{track.releasePointerCapture(e.pointerId)}catch(_){}}if(!moved&&target){openLightbox(project,+target.dataset.global,target);return}if(e.pointerType==='mouse'&&!reduce&&Math.abs(vx)>=2){let v=vx;const stepF=()=>{v*=.92;track.scrollLeft-=v;if(Math.abs(v)>.4)iraf=requestAnimationFrame(stepF)};iraf=requestAnimationFrame(stepF)}};
+  const onCancel=()=>{down=false;root.classList.remove('dragging')};
+  track.addEventListener('pointerdown',onDown);track.addEventListener('pointermove',onMove);track.addEventListener('pointerup',onUp);track.addEventListener('pointercancel',onCancel);
+  return ()=>{track.removeEventListener('scroll',onScroll);track.removeEventListener('keydown',onKey);items.forEach(b=>b.removeEventListener('click',onItemClick));root.removeEventListener('pointermove',onCursorMove);root.removeEventListener('pointerleave',onCursorLeave);track.removeEventListener('pointerdown',onDown);track.removeEventListener('pointermove',onMove);track.removeEventListener('pointerup',onUp);track.removeEventListener('pointercancel',onCancel);cancelAnimationFrame(raf);cancelAnimationFrame(iraf)};
 }
 
 function bindLightbox(){const lb=document.querySelector('#lightbox');document.querySelector('#lb-close').onclick=closeLightbox;document.querySelector('#lb-prev').onclick=()=>showImage(state.index-1);document.querySelector('#lb-next').onclick=()=>showImage(state.index+1);lb.addEventListener('click',e=>{if(e.target===lb)closeLightbox()});let x=0;lb.addEventListener('touchstart',e=>x=e.changedTouches[0].clientX,{passive:true});lb.addEventListener('touchend',e=>{const d=e.changedTouches[0].clientX-x;if(Math.abs(d)>45)showImage(state.index+(d<0?1:-1))},{passive:true});document.addEventListener('keydown',e=>{if(!lb.classList.contains('open'))return;if(e.key==='Escape')closeLightbox();if(e.key==='ArrowLeft')showImage(state.index-1);if(e.key==='ArrowRight')showImage(state.index+1);if(e.key==='Tab')trapFocus(e)})}
-function openLightbox(project,index,opener){state.gallery=project;state.opener=opener;const lb=document.querySelector('#lightbox');lb.classList.add('open');lb.setAttribute('aria-hidden','false');document.body.classList.add('lb-open');document.querySelector('#lb-title').textContent=project.title;document.querySelector('#lb-thumbs').innerHTML=project.images.map((im,i)=>`<button class="lb-thumb" data-thumb="${i}" aria-label="前往第 ${i+1} 張"><img src="${esc(im.src)}" alt=""></button>`).join('');document.querySelectorAll('[data-thumb]').forEach(b=>b.onclick=()=>showImage(+b.dataset.thumb));showImage(index);document.querySelector('#lb-close').focus()}
-function showImage(index){if(!state.gallery)return;const len=state.gallery.images.length;state.index=(index+len)%len;const im=state.gallery.images[state.index],el=document.querySelector('#lb-image');el.src=im.src;el.alt=im.alt;document.querySelector('#lb-count').textContent=`${String(state.index+1).padStart(2,'0')} / ${String(len).padStart(2,'0')}`;document.querySelector('#lb-caption').textContent=im.source||'';document.querySelectorAll('.lb-thumb').forEach((b,i)=>{b.classList.toggle('active',i===state.index);b.setAttribute('aria-current',i===state.index?'true':'false')});document.querySelector('.lb-thumb.active')?.scrollIntoView({inline:'center',block:'nearest'})}
+function openLightbox(project,index,opener){state.gallery=project;state.opener=opener;const lb=document.querySelector('#lightbox');lb.classList.add('open');lb.setAttribute('aria-hidden','false');document.body.classList.add('lb-open');document.querySelector('#lb-title').textContent=project.title;document.querySelector('#lb-thumbs').innerHTML=project.images.map((im,i)=>`<button class="lb-thumb" data-thumb="${i}" aria-label="前往第 ${i+1} 張"><img src="${esc(im.thumb||im.src)}" alt="" loading="lazy" decoding="async"></button>`).join('');document.querySelectorAll('[data-thumb]').forEach(b=>b.onclick=()=>showImage(+b.dataset.thumb));showImage(index);document.querySelector('#lb-close').focus()}
+function showImage(index){if(!state.gallery)return;const len=state.gallery.images.length;state.index=(index+len)%len;const im=state.gallery.images[state.index],el=document.querySelector('#lb-image');el.src=im.src;el.alt=im.alt;document.querySelector('#lb-count').textContent=`${String(state.index+1).padStart(2,'0')} / ${String(len).padStart(2,'0')}`;document.querySelector('#lb-caption').textContent=im.source||'';document.querySelectorAll('.lb-thumb').forEach((b,i)=>{b.classList.toggle('active',i===state.index);b.setAttribute('aria-current',i===state.index?'true':'false')});document.querySelector('.lb-thumb.active')?.scrollIntoView({inline:'center',block:'nearest'});preloadAround(state.gallery.images,state.index)}
 function closeLightbox(){const lb=document.querySelector('#lightbox');if(!lb.classList.contains('open'))return;lb.classList.remove('open');lb.setAttribute('aria-hidden','true');document.body.classList.remove('lb-open');state.opener?.focus();state.gallery=null}
 function trapFocus(e){const f=[...document.querySelectorAll('#lightbox button')].filter(x=>!x.disabled);const a=f[0],z=f[f.length-1];if(e.shiftKey&&document.activeElement===a){e.preventDefault();z.focus()}else if(!e.shiftKey&&document.activeElement===z){e.preventDefault();a.focus()}}
 init().catch(err=>{view.innerHTML=`<div class="loading">${esc(err.message)}。請透過靜態伺服器開啟。</div>`;console.error(err)});
