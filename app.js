@@ -9,7 +9,7 @@ function preloadImg(src){if(!src||preloaded.has(src))return;preloaded.add(src);c
 function preloadAround(images,idx){const len=images.length;if(len<2)return;preloadImg(images[(idx+1)%len].src);preloadImg(images[(idx-1+len)%len].src)}
 
 async function init(){
-  const res=await fetch('projects.json?v=ark-single-strip-1');
+  const res=await fetch('projects.json?v=stewart-vertical-1');
   if(!res.ok)throw new Error('作品資料載入失敗');
   state.projects=(await res.json()).sort((a,b)=>a.slug==='tianmu-ye'?-1:b.slug==='tianmu-ye'?1:PROJECT_NUMBERS[b.slug]-PROJECT_NUMBERS[a.slug]);
   document.querySelector('#year').textContent=new Date().getFullYear();
@@ -110,41 +110,19 @@ function renderResume(){
 
 function renderProject(slug){
   const i=state.projects.findIndex(p=>p.slug===slug);if(i<0){location.replace('#projects');return}
-  const p=state.projects[i],cover=p.images[0],prev=state.projects[(i-1+state.projects.length)%state.projects.length],next=state.projects[(i+1)%state.projects.length],num=String(PROJECT_NUMBERS[p.slug]).padStart(2,'0');
+  const p=state.projects[i],next=state.projects[(i+1)%state.projects.length],num=String(PROJECT_NUMBERS[p.slug]).padStart(2,'0');
   const plansFrom=Math.max(1,Math.min(p.images.length,Number.isFinite(p.plansFrom)?p.plansFrom:p.images.length));
   const gallery=p.images.slice(1,plansFrom).map((im,n)=>({im,index:n+1}));
   const plans=p.images.slice(plansFrom).map((im,n)=>({im,index:n+plansFrom}));
   document.title=`${p.title}｜古捷宇作品集`;
-  view.innerHTML=`<article class="case-study"><section class="case-hero"><img ${imageAttrs(cover,true)}><a class="case-back" href="#projects">← PROJECT INDEX</a><div class="case-hero-copy"><p>PROJECT ${num} · ${esc(p.category)} · ${esc(p.status)}</p><h1>${esc(p.title)}<small>${esc(p.en)}</small></h1></div></section><section class="case-brief reveal"><header><span>02</span><h2>BRIEF</h2><p>NO. ${num}<br>${esc(p.category)}<br>${esc(p.status)}</p></header><p>${esc(p.description)}</p></section>${caseCarousel(p,gallery,{zh:'GALLERY',en:'完工紀錄'},3)}${caseCarousel(p,plans,{zh:'FLOOR PLAN',en:'平面圖'},4)}<nav class="case-pager" aria-label="案例切換"><a class="previous" href="#project/${esc(prev.slug)}">← PREVIOUS · ${esc(prev.title)}</a><a class="next" href="#project/${esc(next.slug)}"><span>NEXT PROJECT</span><strong>${esc(next.title)}</strong><small>${esc(next.en)} →</small></a></nav></article>`;
-  const cleanups=[...view.querySelectorAll('.case-strip')].map(root=>bindCaseStrip(root,p));
-  state.reel={destroy(){cleanups.forEach(fn=>fn&&fn())}};
+  view.innerHTML=`<article class="case-study"><div class="case-media" aria-label="${esc(p.title)}案例圖片">${gallery.map((item,n)=>caseImage(item,n===0)).join('')}${plans.length?`<h2 class="case-plan-label">FLOOR PLAN<small>平面圖</small></h2>${plans.map(item=>caseImage(item,false)).join('')}`:''}</div><aside class="case-side reveal"><div class="case-side-top"><p>WORK · NO.${num}</p><a class="case-back" href="#projects">← PROJECT INDEX</a></div><div class="case-side-title"><h1>${esc(p.title)}<small>${esc(p.en)}</small></h1><p>NO.${num}</p></div><div class="case-side-info"><dl><dt>CATEGORY</dt><dd>${esc(p.category)}</dd><dt>STATUS</dt><dd>${esc(p.status)}</dd></dl><p>${esc(p.description)}</p><a class="case-next" href="#project/${esc(next.slug)}"><span>NEXT PROJECT</span><strong>${esc(next.title)}</strong></a><a class="case-all" href="#projects">ALL CASE STUDIES</a></div></aside></article>`;
+  const items=[...view.querySelectorAll('.case-img')];
+  const onClick=e=>openLightbox(p,+e.currentTarget.dataset.global,e.currentTarget);
+  items.forEach(b=>b.addEventListener('click',onClick));
+  state.reel={destroy(){items.forEach(b=>b.removeEventListener('click',onClick))}};
 }
-function caseCarousel(project,items,section,number){
-  if(!items.length)return '';
-  return `<section class="case-carousel reveal"><header><span>${String(number).padStart(2,'0')}</span><h2>${esc(section.zh)}<small>${esc(section.en)}</small></h2></header><div class="case-strip"><div class="strip-track" tabindex="0" aria-roledescription="carousel" aria-label="${esc(section.zh)}圖片輪播，拖曳瀏覽，點擊放大">${items.map(({im,index},i)=>`<button class="strip-item" data-global="${index}" aria-label="放大第 ${i+1} 張圖片，共 ${items.length} 張"><img ${imageAttrs(im,number===3&&i===0)}></button>`).join('')}</div><div class="strip-progress" aria-hidden="true"><span></span></div><div class="strip-cursor" aria-hidden="true">DRAG</div></div></section>`;
-}
-function bindCaseStrip(root,project){
-  const track=root.querySelector('.strip-track'),bar=root.querySelector('.strip-progress span'),cursor=root.querySelector('.strip-cursor');
-  const fine=matchMedia('(pointer:fine)').matches,reduce=reduceMotion.matches;
-  let raf=0,iraf=0;
-  const updateProgress=()=>{const max=track.scrollWidth-track.clientWidth;bar.style.transform=`scaleX(${max>0?track.scrollLeft/max:0})`};
-  const onScroll=()=>{if(!raf)raf=requestAnimationFrame(()=>{raf=0;updateProgress()})};
-  track.addEventListener('scroll',onScroll,{passive:true});requestAnimationFrame(updateProgress);
-  const onKey=e=>{if(e.key!=='ArrowLeft'&&e.key!=='ArrowRight')return;e.preventDefault();const item=track.querySelector('.strip-item'),step=item?item.getBoundingClientRect().width+12:track.clientWidth*.8;track.scrollBy({left:e.key==='ArrowRight'?step:-step,behavior:reduce?'auto':'smooth'})};
-  track.addEventListener('keydown',onKey);
-  const items=[...root.querySelectorAll('.strip-item')];
-  const onItemClick=e=>{const b=e.currentTarget;if(e.detail===0)openLightbox(project,+b.dataset.global,b)};
-  items.forEach(b=>b.addEventListener('click',onItemClick));
-  const onCursorMove=e=>{if(e.pointerType!=='mouse')return;cursor.style.transform=`translate3d(${e.clientX}px,${e.clientY}px,0)`;root.classList.add('cursor-on')};
-  const onCursorLeave=()=>root.classList.remove('cursor-on');
-  if(fine){root.classList.add('has-cursor');root.addEventListener('pointermove',onCursorMove);root.addEventListener('pointerleave',onCursorLeave)}
-  let down=false,moved=false,startX=0,startScroll=0,lastX=0,vx=0,target=null;
-  const onDown=e=>{if(e.pointerType==='mouse'&&e.button!==0)return;down=true;moved=false;startX=lastX=e.clientX;startScroll=track.scrollLeft;vx=0;target=e.target.closest('.strip-item');cancelAnimationFrame(iraf);if(e.pointerType==='mouse'){track.setPointerCapture(e.pointerId);root.classList.add('dragging')}};
-  const onMove=e=>{if(!down)return;const dx=e.clientX-startX;if(Math.abs(dx)>8)moved=true;vx=e.clientX-lastX;lastX=e.clientX;if(e.pointerType==='mouse')track.scrollLeft=startScroll-dx};
-  const onUp=e=>{if(!down)return;down=false;root.classList.remove('dragging');if(e.pointerType==='mouse'){try{track.releasePointerCapture(e.pointerId)}catch(_){}}if(!moved&&target){openLightbox(project,+target.dataset.global,target);return}if(e.pointerType==='mouse'&&!reduce&&Math.abs(vx)>=2){let v=vx;const stepF=()=>{v*=.92;track.scrollLeft-=v;if(Math.abs(v)>.4)iraf=requestAnimationFrame(stepF)};iraf=requestAnimationFrame(stepF)}};
-  const onCancel=()=>{down=false;root.classList.remove('dragging')};
-  track.addEventListener('pointerdown',onDown);track.addEventListener('pointermove',onMove);track.addEventListener('pointerup',onUp);track.addEventListener('pointercancel',onCancel);
-  return ()=>{track.removeEventListener('scroll',onScroll);track.removeEventListener('keydown',onKey);items.forEach(b=>b.removeEventListener('click',onItemClick));root.removeEventListener('pointermove',onCursorMove);root.removeEventListener('pointerleave',onCursorLeave);track.removeEventListener('pointerdown',onDown);track.removeEventListener('pointermove',onMove);track.removeEventListener('pointerup',onUp);track.removeEventListener('pointercancel',onCancel);cancelAnimationFrame(raf);cancelAnimationFrame(iraf)};
+function caseImage({im,index},eager=false){
+  return `<button class="case-img reveal" data-global="${index}" aria-label="放大 ${esc(im.alt)}"><img ${imageAttrs(im,eager)}></button>`;
 }
 
 function bindLightbox(){const lb=document.querySelector('#lightbox');document.querySelector('#lb-close').onclick=closeLightbox;document.querySelector('#lb-prev').onclick=()=>showImage(state.index-1);document.querySelector('#lb-next').onclick=()=>showImage(state.index+1);lb.addEventListener('click',e=>{if(e.target===lb)closeLightbox()});let x=0;lb.addEventListener('touchstart',e=>x=e.changedTouches[0].clientX,{passive:true});lb.addEventListener('touchend',e=>{const d=e.changedTouches[0].clientX-x;if(Math.abs(d)>45)showImage(state.index+(d<0?1:-1))},{passive:true});document.addEventListener('keydown',e=>{if(!lb.classList.contains('open'))return;if(e.key==='Escape')closeLightbox();if(e.key==='ArrowLeft')showImage(state.index-1);if(e.key==='ArrowRight')showImage(state.index+1);if(e.key==='Tab')trapFocus(e)})}
