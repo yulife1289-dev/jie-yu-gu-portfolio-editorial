@@ -15,7 +15,7 @@ function preloadImg(src){if(!src||preloaded.has(src))return;preloaded.add(src);c
 function preloadAround(images,idx){const len=images.length;if(len<2)return;preloadImg(images[(idx+1)%len].src);preloadImg(images[(idx-1+len)%len].src)}
 
 async function init(){
-  const res=await fetch('projects.json');
+  const res=await fetch('projects.json?v=photos-random-25-2');
   if(!res.ok)throw new Error('作品資料載入失敗');
   state.projects=(await res.json()).sort((a,b)=>a.slug==='tianmu-ye'?-1:b.slug==='tianmu-ye'?1:PROJECT_NUMBERS[b.slug]-PROJECT_NUMBERS[a.slug]);
   document.querySelector('#year').textContent=new Date().getFullYear();
