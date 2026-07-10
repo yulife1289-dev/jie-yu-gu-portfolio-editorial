@@ -1,10 +1,4 @@
 const PROJECT_NUMBERS={'kaohsiung-playmore':1,'taichung-wuquan':7,'taoyuan-yaxin':12,'zhongyi-office':16,'linkou-weige':17,'tianmu-ye':22,'muzha-yuanli':24,'jingumae-507':25,'olivia-cafe':26};
-const DEFAULT_SECTIONS=[
-  {key:'spatial',zh:'空間策略',en:'SPATIAL STRATEGY',copy:'〔文案待補〕空間配置、動線與尺度關係將於此處補充。'},
-  {key:'material',zh:'材質系統',en:'MATERIAL SYSTEM',copy:'〔文案待補〕主要材質、色彩與觸感選擇將於此處補充。'},
-  {key:'lighting',zh:'照明規劃',en:'LIGHTING STRATEGY',copy:'〔文案待補〕自然光與人工照明的層次將於此處補充。'},
-  {key:'details',zh:'細部',en:'DETAILS',copy:'〔文案待補〕收邊、五金與客製細節將於此處補充。'}
-];
 const state={projects:[],gallery:null,index:0,opener:null,observer:null,transitioning:false,pending:false,reel:null,lastPage:null,projectsScroll:0};
 const view=document.querySelector('#view');
 const mask=document.querySelector('.transition-mask');
@@ -15,7 +9,7 @@ function preloadImg(src){if(!src||preloaded.has(src))return;preloaded.add(src);c
 function preloadAround(images,idx){const len=images.length;if(len<2)return;preloadImg(images[(idx+1)%len].src);preloadImg(images[(idx-1+len)%len].src)}
 
 async function init(){
-  const res=await fetch('projects.json?v=photos-random-25-2');
+  const res=await fetch('projects.json?v=ark-single-strip-1');
   if(!res.ok)throw new Error('作品資料載入失敗');
   state.projects=(await res.json()).sort((a,b)=>a.slug==='tianmu-ye'?-1:b.slug==='tianmu-ye'?1:PROJECT_NUMBERS[b.slug]-PROJECT_NUMBERS[a.slug]);
   document.querySelector('#year').textContent=new Date().getFullYear();
@@ -117,17 +111,17 @@ function renderResume(){
 function renderProject(slug){
   const i=state.projects.findIndex(p=>p.slug===slug);if(i<0){location.replace('#projects');return}
   const p=state.projects[i],cover=p.images[0],prev=state.projects[(i-1+state.projects.length)%state.projects.length],next=state.projects[(i+1)%state.projects.length],num=String(PROJECT_NUMBERS[p.slug]).padStart(2,'0');
-  const groups=distributeImages(p.images.slice(1));document.title=`${p.title}｜古捷宇作品集`;
-  const sectionData=DEFAULT_SECTIONS.map((defaults,n)=>({...defaults,...(Array.isArray(p.sections)?p.sections[n]:p.sections?.[defaults.key])}));
-  view.innerHTML=`<article class="case-study"><section class="case-hero"><img ${imageAttrs(cover,true)}><a class="case-back" href="#projects">← PROJECT INDEX</a><div class="case-hero-copy"><p>PROJECT ${num} · ${esc(p.category)} · ${esc(p.status)}</p><h1>${esc(p.title)}<small>${esc(p.en)}</small></h1></div></section><section class="case-brief reveal"><header><span>02</span><h2>BRIEF</h2><p>NO. ${num}<br>${esc(p.category)}<br>${esc(p.status)}</p></header><p>${esc(p.description)}</p></section>${sectionData.map((s,n)=>caseCarousel(p,groups[n],s,n+3)).join('')}<nav class="case-pager" aria-label="案例切換"><a class="previous" href="#project/${esc(prev.slug)}">← PREVIOUS · ${esc(prev.title)}</a><a class="next" href="#project/${esc(next.slug)}"><span>NEXT PROJECT</span><strong>${esc(next.title)}</strong><small>${esc(next.en)} →</small></a></nav></article>`;
+  const plansFrom=Math.max(1,Math.min(p.images.length,Number.isFinite(p.plansFrom)?p.plansFrom:p.images.length));
+  const gallery=p.images.slice(1,plansFrom).map((im,n)=>({im,index:n+1}));
+  const plans=p.images.slice(plansFrom).map((im,n)=>({im,index:n+plansFrom}));
+  document.title=`${p.title}｜古捷宇作品集`;
+  view.innerHTML=`<article class="case-study"><section class="case-hero"><img ${imageAttrs(cover,true)}><a class="case-back" href="#projects">← PROJECT INDEX</a><div class="case-hero-copy"><p>PROJECT ${num} · ${esc(p.category)} · ${esc(p.status)}</p><h1>${esc(p.title)}<small>${esc(p.en)}</small></h1></div></section><section class="case-brief reveal"><header><span>02</span><h2>BRIEF</h2><p>NO. ${num}<br>${esc(p.category)}<br>${esc(p.status)}</p></header><p>${esc(p.description)}</p></section>${caseCarousel(p,gallery,{zh:'GALLERY',en:'完工紀錄'},3)}${caseCarousel(p,plans,{zh:'FLOOR PLAN',en:'平面圖'},4)}<nav class="case-pager" aria-label="案例切換"><a class="previous" href="#project/${esc(prev.slug)}">← PREVIOUS · ${esc(prev.title)}</a><a class="next" href="#project/${esc(next.slug)}"><span>NEXT PROJECT</span><strong>${esc(next.title)}</strong><small>${esc(next.en)} →</small></a></nav></article>`;
   const cleanups=[...view.querySelectorAll('.case-strip')].map(root=>bindCaseStrip(root,p));
   state.reel={destroy(){cleanups.forEach(fn=>fn&&fn())}};
 }
-function distributeImages(images){const n=images.length,groups=[];let start=0;for(let k=0;k<4;k++){const size=Math.ceil((n-start)/(4-k));groups.push(images.slice(start,start+size));start+=size}return groups}
-function caseCarousel(project,images,section,number){
-  if(!images.length)return '';
-  const ph=String(section.copy).includes('〔文案待補〕');
-  return `<section class="case-carousel reveal"><header><span>${String(number).padStart(2,'0')}</span><h2>${esc(section.zh)}<small>${esc(section.en)}</small></h2><p class="${ph?'placeholder':''}">${esc(section.copy)}</p></header><div class="case-strip"><div class="strip-track" tabindex="0" aria-roledescription="carousel" aria-label="${esc(section.zh)}圖片輪播，拖曳瀏覽，點擊放大">${images.map((im,i)=>`<button class="strip-item" data-global="${project.images.indexOf(im)}" aria-label="放大第 ${i+1} 張圖片，共 ${images.length} 張"><img ${imageAttrs(im,number<4&&i===0)}></button>`).join('')}</div><div class="strip-progress" aria-hidden="true"><span></span></div><div class="strip-cursor" aria-hidden="true">DRAG</div></div></section>`;
+function caseCarousel(project,items,section,number){
+  if(!items.length)return '';
+  return `<section class="case-carousel reveal"><header><span>${String(number).padStart(2,'0')}</span><h2>${esc(section.zh)}<small>${esc(section.en)}</small></h2></header><div class="case-strip"><div class="strip-track" tabindex="0" aria-roledescription="carousel" aria-label="${esc(section.zh)}圖片輪播，拖曳瀏覽，點擊放大">${items.map(({im,index},i)=>`<button class="strip-item" data-global="${index}" aria-label="放大第 ${i+1} 張圖片，共 ${items.length} 張"><img ${imageAttrs(im,number===3&&i===0)}></button>`).join('')}</div><div class="strip-progress" aria-hidden="true"><span></span></div><div class="strip-cursor" aria-hidden="true">DRAG</div></div></section>`;
 }
 function bindCaseStrip(root,project){
   const track=root.querySelector('.strip-track'),bar=root.querySelector('.strip-progress span'),cursor=root.querySelector('.strip-cursor');
