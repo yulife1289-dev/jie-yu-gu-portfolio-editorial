@@ -9,7 +9,7 @@ function preloadImg(src){if(!src||preloaded.has(src))return;preloaded.add(src);c
 function preloadAround(images,idx){const len=images.length;if(len<2)return;preloadImg(images[(idx+1)%len].src);preloadImg(images[(idx-1+len)%len].src)}
 
 async function init(){
-  const res=await fetch('projects.json?v=stewart-vertical-1');
+  const res=await fetch('projects.json?v=stewart-mobile-actions-1');
   if(!res.ok)throw new Error('作品資料載入失敗');
   state.projects=(await res.json()).sort((a,b)=>a.slug==='tianmu-ye'?-1:b.slug==='tianmu-ye'?1:PROJECT_NUMBERS[b.slug]-PROJECT_NUMBERS[a.slug]);
   document.querySelector('#year').textContent=new Date().getFullYear();
@@ -115,7 +115,7 @@ function renderProject(slug){
   const gallery=p.images.slice(1,plansFrom).map((im,n)=>({im,index:n+1}));
   const plans=p.images.slice(plansFrom).map((im,n)=>({im,index:n+plansFrom}));
   document.title=`${p.title}｜古捷宇作品集`;
-  view.innerHTML=`<article class="case-study"><div class="case-media" aria-label="${esc(p.title)}案例圖片">${gallery.map((item,n)=>caseImage(item,n===0)).join('')}${plans.length?`<h2 class="case-plan-label">FLOOR PLAN<small>平面圖</small></h2>${plans.map(item=>caseImage(item,false)).join('')}`:''}</div><aside class="case-side reveal"><div class="case-side-top"><p>WORK · NO.${num}</p><a class="case-back" href="#projects">← PROJECT INDEX</a></div><div class="case-side-title"><h1>${esc(p.title)}<small>${esc(p.en)}</small></h1><p>NO.${num}</p></div><div class="case-side-info"><dl><dt>CATEGORY</dt><dd>${esc(p.category)}</dd><dt>STATUS</dt><dd>${esc(p.status)}</dd></dl><p>${esc(p.description)}</p><a class="case-next" href="#project/${esc(next.slug)}"><span>NEXT PROJECT</span><strong>${esc(next.title)}</strong></a><a class="case-all" href="#projects">ALL CASE STUDIES</a></div></aside></article>`;
+  view.innerHTML=`<article class="case-study"><div class="case-media" aria-label="${esc(p.title)}案例圖片">${gallery.map((item,n)=>caseImage(item,n===0)).join('')}${plans.length?`<h2 class="case-plan-label">FLOOR PLAN<small>平面圖</small></h2>${plans.map(item=>caseImage(item,false)).join('')}`:''}</div><aside class="case-side reveal"><div class="case-side-top"><p>WORK · NO.${num}</p><a class="case-back" href="#projects">← PROJECT INDEX</a></div><div class="case-side-title"><h1>${esc(p.title)}<small>${esc(p.en)}</small></h1><p>NO.${num}</p></div><div class="case-side-info"><dl><dt>CATEGORY</dt><dd>${esc(p.category)}</dd><dt>STATUS</dt><dd>${esc(p.status)}</dd></dl><p>${esc(p.description)}</p><a class="case-next" href="#project/${esc(next.slug)}"><span>NEXT PROJECT</span><strong>${esc(next.title)}</strong></a><a class="case-all" href="#projects">ALL CASE STUDIES</a></div></aside><nav class="case-mobile-actions reveal" aria-label="手機版案例導覽"><a class="case-next" href="#project/${esc(next.slug)}"><span>NEXT PROJECT</span><strong>${esc(next.title)}</strong></a><a class="case-all" href="#projects">ALL CASE STUDIES</a></nav></article>`;
   const items=[...view.querySelectorAll('.case-img')];
   const onClick=e=>openLightbox(p,+e.currentTarget.dataset.global,e.currentTarget);
   items.forEach(b=>b.addEventListener('click',onClick));
