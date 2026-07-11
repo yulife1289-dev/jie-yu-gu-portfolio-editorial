@@ -1,5 +1,5 @@
 const PROJECT_NUMBERS={'kaohsiung-playmore':1,'taichung-wuquan':7,'taoyuan-yaxin':12,'zhongyi-office':16,'linkou-weige':17,'tianmu-ye':22,'muzha-yuanli':24,'jingumae-507':25,'olivia-cafe':26};
-const state={projects:[],gallery:null,index:0,opener:null,observer:null,transitioning:false,pending:false,reel:null,lastPage:null,projectsScroll:0};
+const state={projects:[],gallery:null,index:0,opener:null,observer:null,transitioning:false,pending:false,reel:null,lastPage:null,projectsScroll:0,reelIndex:0};
 const view=document.querySelector('#view');
 const mask=document.querySelector('.transition-mask');
 const reduceMotion=matchMedia('(prefers-reduced-motion: reduce)');
@@ -9,7 +9,7 @@ function preloadImg(src){if(!src||preloaded.has(src))return;preloaded.add(src);c
 function preloadAround(images,idx){const len=images.length;if(len<2)return;preloadImg(images[(idx+1)%len].src);preloadImg(images[(idx-1+len)%len].src)}
 
 async function init(){
-  const res=await fetch('projects.json?v=stewart-mobile-actions-1');
+  const res=await fetch('projects.json?v=stewart-mobile-flycards-1');
   if(!res.ok)throw new Error('作品資料載入失敗');
   state.projects=(await res.json()).sort((a,b)=>a.slug==='tianmu-ye'?-1:b.slug==='tianmu-ye'?1:PROJECT_NUMBERS[b.slug]-PROJECT_NUMBERS[a.slug]);
   document.querySelector('#year').textContent=new Date().getFullYear();
@@ -46,28 +46,39 @@ function imageAttrs(im,eager=false){return `src="${esc(im.src)}" width="${im.wid
 
 function renderProjects(){
   document.title='古捷宇｜Interior Design Portfolio';const total=state.projects.length;
-  view.innerHTML=`<section class="reel" aria-label="作品索引" style="height:${total*100}vh"><div class="reel-stage"><p class="reel-side" aria-live="polite"><span class="reel-name"></span><span class="reel-meta"></span></p><div class="reel-track">${state.projects.map(reelItem).join('')}</div><p class="reel-brand" aria-hidden="true">Projects</p><p class="reel-count" aria-hidden="true"></p></div><span class="reel-cursor" aria-hidden="true">VIEW</span></section>`;
+  view.innerHTML=`<section class="reel" aria-label="作品索引" style="height:${total*100}vh"><div class="reel-stage"><p class="reel-side" aria-live="polite"><span class="reel-name"></span><span class="reel-meta"></span></p><div class="reel-track">${state.projects.map(reelItem).join('')}</div><p class="reel-brand" aria-hidden="true">Projects</p><p class="reel-count" aria-hidden="true"></p><div class="reel-arrows" aria-label="切換作品"><button type="button" data-reel-dir="-1" aria-label="上一個作品">${arrowIcon(-1)}</button><button type="button" data-reel-dir="1" aria-label="下一個作品">${arrowIcon(1)}</button></div></div><span class="reel-cursor" aria-hidden="true">VIEW</span></section>`;
   state.reel=makeReel();
 }
 function reelItem(p,i){const cover=p.images[0];return `<a class="reel-item" data-i="${i}" href="#project/${esc(p.slug)}" aria-label="查看${esc(p.title)}案例"><span class="reel-frame"><img ${imageAttrs(cover,i<2)}><span class="reel-tap" aria-hidden="true">TAP TO OPEN</span></span></a>`}
+function arrowIcon(dir){return `<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="${dir<0?'M15 6l-6 6 6 6':'M9 6l6 6-6 6'}"/></svg>`}
 function makeReel(){
   const stage=view.querySelector('.reel-stage'),items=[...view.querySelectorAll('.reel-item')];
-  const side=view.querySelector('.reel-side'),nameEl=view.querySelector('.reel-name'),metaEl=view.querySelector('.reel-meta'),countEl=view.querySelector('.reel-count'),cursor=view.querySelector('.reel-cursor');
+  const side=view.querySelector('.reel-side'),nameEl=view.querySelector('.reel-name'),metaEl=view.querySelector('.reel-meta'),countEl=view.querySelector('.reel-count'),cursor=view.querySelector('.reel-cursor'),arrows=[...view.querySelectorAll('[data-reel-dir]')];
   const total=items.length,reduce=reduceMotion.matches,touch=matchMedia('(hover:none)').matches;
   const mobile=matchMedia('(max-width:520px)').matches,maxTilt=touch?35:58;
-  let layoutWidth=innerWidth,slotHeight=innerHeight,mobileStep=0;
-  let raf=0,current=-1,snapTimer=0,rollTimer=0,hovering=false,targetIdx=Math.max(0,Math.min(total-1,Math.round(scrollY/slotHeight))),locked=false,unlockT=0,animating=false;
+  let layoutWidth=innerWidth,slotHeight=innerHeight,mobileStep=0,pointerStart=null;
+  let raf=0,current=-1,snapTimer=0,rollTimer=0,hovering=false,targetIdx=0,progress=0,locked=false,unlockT=0,animating=false;
   const vh=()=>slotHeight,clampIdx=n=>Math.max(0,Math.min(total-1,n));
-  function measure(){slotHeight=innerHeight;if(mobile){const cardHeight=innerWidth*.88*10/16,gap=Math.min(156,Math.max(132,innerWidth*.38));mobileStep=cardHeight+gap}}
-  measure();
+  function measure(){slotHeight=innerHeight;if(mobile)mobileStep=Math.min(340,Math.max(246,innerWidth*.64))}
+  measure();targetIdx=mobile?clampIdx(state.reelIndex):clampIdx(Math.round(scrollY/vh()));progress=targetIdx;
   function roll(el,oldText,newText){const old=document.createElement('span'),next=document.createElement('span');old.className='reel-old';old.setAttribute('aria-hidden','true');old.textContent=oldText;next.className='reel-new';next.textContent=newText;el.replaceChildren(old,next)}
   function setCard(n){if(n===current)return;const previous=current<0?null:state.projects[current],p=state.projects[n],num=String(PROJECT_NUMBERS[p.slug]).padStart(2,'0'),meta=`NO. ${num} · ${p.category} · ${p.status}`;
     clearTimeout(rollTimer);current=n;
     if(previous&&!reduce&&!mobile){const oldNum=String(PROJECT_NUMBERS[previous.slug]).padStart(2,'0');roll(nameEl,previous.title,p.title);roll(metaEl,`NO. ${oldNum} · ${previous.category} · ${previous.status}`,meta);rollTimer=setTimeout(()=>{nameEl.textContent=p.title;metaEl.textContent=meta},450)}else{nameEl.textContent=p.title;metaEl.textContent=meta}
-    countEl.textContent=`${String(n+1).padStart(2,'0')} / ${String(total).padStart(2,'0')}`;items.forEach((el,i)=>el.setAttribute('aria-current',i===n?'true':'false'));}
-  function frame(){raf=0;const progress=scrollY/vh(),focus=clampIdx(Math.round(progress));
-    if(mobile)side.style.opacity=String(Math.max(0,1-Math.abs(progress-focus)*2));
-    items.forEach((el,i)=>{const d=i-progress,ad=Math.abs(d);
+    countEl.textContent=`${String(n+1).padStart(2,'0')} / ${String(total).padStart(2,'0')}`;items.forEach((el,i)=>el.setAttribute('aria-current',i===n?'true':'false'));arrows.forEach(b=>{const dir=+b.dataset.reelDir;b.disabled=(dir<0&&n===0)||(dir>0&&n===total-1)});}
+  function requestFrame(){if(!raf)raf=requestAnimationFrame(frame)}
+  function frame(){raf=0;
+    if(mobile){progress=reduce?targetIdx:progress+(targetIdx-progress)*.18;if(Math.abs(targetIdx-progress)<.002)progress=targetIdx;
+      items.forEach((el,i)=>{const d=i-progress,ad=Math.abs(d);
+        if(ad>2.7){el.style.visibility='hidden';return}el.style.visibility='';
+        const sc=Math.max(.74,1-ad*.1),op=ad>2.15?Math.max(0,(2.7-ad)/.55):1;
+        el.style.transform=`translate(calc(-50% + ${d*mobileStep}px),-50%) scale(${sc})`;
+        el.style.filter='none';el.style.zIndex=String(100-Math.round(ad*10));el.style.opacity=String(op);
+      });
+      setCard(targetIdx);if(!reduce&&progress!==targetIdx)requestFrame();return}
+    const scrollProgress=scrollY/vh(),focus=clampIdx(Math.round(scrollProgress));
+    if(mobile)side.style.opacity=String(Math.max(0,1-Math.abs(scrollProgress-focus)*2));
+    items.forEach((el,i)=>{const d=i-scrollProgress,ad=Math.abs(d);
       if(ad>2.6){el.style.visibility='hidden';return}el.style.visibility='';
       if(reduce){el.style.transform=`translate(-50%,calc(-50% + ${d*100}vh))`;el.style.opacity=ad<.5?'1':'0';el.style.zIndex=String(100-Math.round(ad*10));return}
       if(mobile){const y=d*mobileStep;el.style.transform=`translate(-50%,calc(-50% + ${y}px))`;el.style.filter='none';el.style.zIndex=String(100-Math.round(ad*10));el.style.opacity=ad>2.2?String(Math.max(0,(2.6-ad)/.4)):'1';return}
@@ -76,21 +87,33 @@ function makeReel(){
       el.style.filter=`brightness(${br})`;el.style.zIndex=String(100-Math.round(ad*10));el.style.opacity=ad>2.2?String(Math.max(0,(2.6-ad)/.4)):'1';});
     setCard(focus);}
   function onScroll(){if(!raf)raf=requestAnimationFrame(frame);if(!reduce&&!mobile){clearTimeout(snapTimer);snapTimer=setTimeout(snap,150)}}
-  function onResize(){if(!mobile||Math.abs(innerWidth-layoutWidth)>1){layoutWidth=innerWidth;measure()}onScroll()}
-  function goTo(t){targetIdx=clampIdx(t);animating=true;scrollTo({top:targetIdx*vh(),behavior:reduce?'auto':'smooth'})}
+  function rebuildForBreakpoint(nextMobile){const idx=clampIdx(current>=0?current:(mobile?targetIdx:Math.round(scrollY/vh())));state.reelIndex=idx;if(!nextMobile)scrollTo({top:idx*innerHeight,left:0,behavior:'instant'});state.reel?.destroy();state.reel=makeReel()}
+  function onResize(){const nextMobile=matchMedia('(max-width:520px)').matches;if(nextMobile!==mobile){rebuildForBreakpoint(nextMobile);return}if(!mobile||Math.abs(innerWidth-layoutWidth)>1){layoutWidth=innerWidth;measure()}mobile?requestFrame():onScroll()}
+  function goTo(t){targetIdx=clampIdx(t);state.reelIndex=targetIdx;animating=true;if(mobile){requestFrame();return}scrollTo({top:targetIdx*vh(),behavior:reduce?'auto':'smooth'})}
   function snap(){const last=(total-1)*vh();animating=false;if(scrollY>last+1)return;const idx=clampIdx(Math.round(scrollY/vh()));targetIdx=idx;const top=idx*vh();if(Math.abs(top-scrollY)>1){animating=true;scrollTo({top,behavior:reduce?'auto':'smooth'})}}
-  function step(dir){const base=animating?targetIdx:clampIdx(Math.round(scrollY/vh()));goTo(base+dir)}
+  function step(dir){const base=mobile?targetIdx:animating?targetIdx:clampIdx(Math.round(scrollY/vh()));goTo(base+dir)}
   // ponytail: 140ms idle 鎖，一次手勢(滑鼠刻度/觸控板滑動含慣性尾)=一張；要快滾多張再調降
   function releaseSoon(){clearTimeout(unlockT);unlockT=setTimeout(()=>{locked=false},140)}
   function onWheel(e){const last=(total-1)*vh();if(reduce||touch||e.ctrlKey||Math.abs(e.deltaY)<=Math.abs(e.deltaX))return;const dir=e.deltaY>0?1:-1;if((dir<0&&scrollY<=0)||(dir>0&&scrollY>=last))return;e.preventDefault();if(locked){releaseSoon();return}step(dir);locked=true;releaseSoon()}
-  function onKey(e){if(route().page!=='projects')return;const tg=e.target;if(tg&&/^(INPUT|TEXTAREA|SELECT)$/.test(tg.tagName))return;let dir=0,jump=-1;switch(e.key){case'PageDown':case'ArrowDown':dir=1;break;case' ':case'Spacebar':if(tg&&/^(A|BUTTON)$/.test(tg.tagName))return;dir=1;break;case'PageUp':case'ArrowUp':dir=-1;break;case'Home':jump=0;break;case'End':jump=total-1;break;default:return}e.preventDefault();if(jump>=0)goTo(jump);else step(dir)}
+  function onKey(e){if(route().page!=='projects')return;const tg=e.target;if(tg&&/^(INPUT|TEXTAREA|SELECT)$/.test(tg.tagName))return;let dir=0,jump=-1;switch(e.key){case'PageDown':case'ArrowDown':case'ArrowRight':dir=1;break;case' ':case'Spacebar':if(tg&&/^(A|BUTTON)$/.test(tg.tagName))return;dir=1;break;case'PageUp':case'ArrowUp':case'ArrowLeft':dir=-1;break;case'Home':jump=0;break;case'End':jump=total-1;break;default:return}e.preventDefault();if(jump>=0)goTo(jump);else step(dir)}
   function onMove(e){if(!hovering)return;cursor.style.left=e.clientX+'px';cursor.style.top=e.clientY+'px'}
-  if(!touch){stage.addEventListener('pointermove',e=>{const over=e.target.closest('.reel-item');const isFocus=over&&+over.dataset.i===current;hovering=isFocus;stage.classList.toggle('cursor-on',isFocus);if(isFocus)onMove(e)});
-    stage.addEventListener('pointerleave',()=>{hovering=false;stage.classList.remove('cursor-on')});}
+  function beginSwipe(x,y,id){pointerStart={x,y,id}}
+  function finishSwipe(x,y,id,e){if(!pointerStart||pointerStart.id!==id)return;const dx=x-pointerStart.x,dy=y-pointerStart.y;pointerStart=null;if(Math.abs(dx)>40&&Math.abs(dx)>Math.abs(dy)*1.2){e.preventDefault();step(dx<0?1:-1)}}
+  function onPointerDown(e){if(!mobile||e.target.closest('button'))return;beginSwipe(e.clientX,e.clientY,e.pointerId)}
+  function onPointerUp(e){finishSwipe(e.clientX,e.clientY,e.pointerId,e)}
+  function onPointerCancel(){pointerStart=null}
+  function onTouchStart(e){if(!mobile||e.target.closest('button'))return;const t=e.changedTouches[0];if(t)beginSwipe(t.clientX,t.clientY,'touch')}
+  function onTouchEnd(e){const t=e.changedTouches[0];if(t)finishSwipe(t.clientX,t.clientY,'touch',e)}
+  function onPointerMove(e){const over=e.target.closest('.reel-item'),isFocus=over&&+over.dataset.i===current;hovering=isFocus;stage.classList.toggle('cursor-on',isFocus);if(isFocus)onMove(e)}
+  function onPointerLeave(){hovering=false;stage.classList.remove('cursor-on')}
+  if(!touch){stage.addEventListener('pointermove',onPointerMove);stage.addEventListener('pointerleave',onPointerLeave);}
+  arrows.forEach(b=>b.addEventListener('click',()=>step(+b.dataset.reelDir)));
+  stage.addEventListener('pointerdown',onPointerDown,{passive:true});stage.addEventListener('pointerup',onPointerUp);stage.addEventListener('pointercancel',onPointerCancel);stage.addEventListener('touchstart',onTouchStart,{passive:true});stage.addEventListener('touchend',onTouchEnd,{passive:false});
   items.forEach(el=>el.addEventListener('click',e=>{const i=+el.dataset.i;if(i!==current){e.preventDefault();goTo(i)}}));
   items.forEach(el=>el.addEventListener('focus',()=>{const i=+el.dataset.i;if(i!==current)goTo(i)}));
-  addEventListener('scroll',onScroll,{passive:true});addEventListener('resize',onResize);addEventListener('wheel',onWheel,{passive:false});addEventListener('keydown',onKey);if('onscrollend'in window&&!reduce)addEventListener('scrollend',snap);frame();
-  return{destroy(){removeEventListener('scroll',onScroll);removeEventListener('resize',onResize);removeEventListener('wheel',onWheel);removeEventListener('keydown',onKey);removeEventListener('scrollend',snap);cancelAnimationFrame(raf);clearTimeout(snapTimer);clearTimeout(rollTimer);clearTimeout(unlockT)}};
+  if(!mobile){addEventListener('scroll',onScroll,{passive:true});addEventListener('wheel',onWheel,{passive:false});if('onscrollend'in window&&!reduce)addEventListener('scrollend',snap)}
+  addEventListener('resize',onResize);addEventListener('keydown',onKey);frame();
+  return{destroy(){removeEventListener('scroll',onScroll);removeEventListener('resize',onResize);removeEventListener('wheel',onWheel);removeEventListener('keydown',onKey);removeEventListener('scrollend',snap);stage.removeEventListener('pointermove',onPointerMove);stage.removeEventListener('pointerleave',onPointerLeave);stage.removeEventListener('pointerdown',onPointerDown);stage.removeEventListener('pointerup',onPointerUp);stage.removeEventListener('pointercancel',onPointerCancel);stage.removeEventListener('touchstart',onTouchStart);stage.removeEventListener('touchend',onTouchEnd);arrows.forEach(b=>b.replaceWith(b.cloneNode(true)));cancelAnimationFrame(raf);clearTimeout(snapTimer);clearTimeout(rollTimer);clearTimeout(unlockT)}};
 }
 
 function renderResume(){
