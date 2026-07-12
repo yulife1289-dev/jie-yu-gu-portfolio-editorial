@@ -206,6 +206,14 @@
         "alt": "高雄樂玩多—設計／提案影像 25",
         "source": "Enscape_2025-01-08-04-06-20_場景號9.png",
         "thumb": "assets/projects/kaohsiung-playmore/thumbs/25.jpg"
+      },
+      {
+        "src": "assets/projects/kaohsiung-playmore/26.jpg",
+        "width": 2200,
+        "height": 1555,
+        "alt": "高雄樂玩多—平面圖 01",
+        "source": "0107高雄展場.pdf#page=2",
+        "thumb": "assets/projects/kaohsiung-playmore/thumbs/26.jpg"
       }
     ],
     "plansFrom": 25
@@ -552,9 +560,9 @@
       {
         "src": "assets/projects/taoyuan-yaxin/25.jpg",
         "width": 2200,
-        "height": 1557,
+        "height": 1368,
         "alt": "亞昕向陽—平面圖 01",
-        "source": "0122亞昕向陽-平面配置圖-1.jpg",
+        "source": "0122亞昕向陽-平面配置圖.png",
         "thumb": "assets/projects/taoyuan-yaxin/thumbs/25.jpg"
       }
     ],
@@ -763,9 +771,9 @@
       {
         "src": "assets/projects/zhongyi-office/25.jpg",
         "width": 2200,
-        "height": 1557,
+        "height": 1345,
         "alt": "仲誼公關辦公室—平面圖 01",
-        "source": "仲誼辦公室-1.jpg",
+        "source": "仲誼辦公室.png",
         "thumb": "assets/projects/zhongyi-office/thumbs/25.jpg"
       }
     ],
@@ -926,57 +934,57 @@
       {
         "src": "assets/projects/linkou-weige/19.jpg",
         "width": 2200,
-        "height": 1557,
+        "height": 1017,
         "alt": "林口微閣雲品—平面圖 01",
-        "source": "1125 林口微閣雲品-1.jpg",
+        "source": "1125 林口微閣雲品_1.png",
         "thumb": "assets/projects/linkou-weige/thumbs/19.jpg"
       },
       {
         "src": "assets/projects/linkou-weige/20.jpg",
         "width": 2200,
-        "height": 1557,
+        "height": 1015,
         "alt": "林口微閣雲品—平面圖 02",
-        "source": "1125 林口微閣雲品-2.jpg",
+        "source": "1125 林口微閣雲品_2.png",
         "thumb": "assets/projects/linkou-weige/thumbs/20.jpg"
       },
       {
         "src": "assets/projects/linkou-weige/21.jpg",
         "width": 2200,
-        "height": 1557,
+        "height": 1015,
         "alt": "林口微閣雲品—平面圖 03",
-        "source": "1125 林口微閣雲品-3.jpg",
+        "source": "1125 林口微閣雲品_3.png",
         "thumb": "assets/projects/linkou-weige/thumbs/21.jpg"
       },
       {
         "src": "assets/projects/linkou-weige/22.jpg",
         "width": 2200,
-        "height": 1557,
+        "height": 1015,
         "alt": "林口微閣雲品—平面圖 04",
-        "source": "1125 林口微閣雲品-4.jpg",
+        "source": "1125 林口微閣雲品_4.png",
         "thumb": "assets/projects/linkou-weige/thumbs/22.jpg"
       },
       {
         "src": "assets/projects/linkou-weige/23.jpg",
         "width": 2200,
-        "height": 1557,
+        "height": 1015,
         "alt": "林口微閣雲品—平面圖 05",
-        "source": "1125 林口微閣雲品-5.jpg",
+        "source": "1125 林口微閣雲品_5.png",
         "thumb": "assets/projects/linkou-weige/thumbs/23.jpg"
       },
       {
         "src": "assets/projects/linkou-weige/24.jpg",
         "width": 2200,
-        "height": 1557,
+        "height": 1015,
         "alt": "林口微閣雲品—平面圖 06",
-        "source": "1125 林口微閣雲品-6.jpg",
+        "source": "1125 林口微閣雲品_6.png",
         "thumb": "assets/projects/linkou-weige/thumbs/24.jpg"
       },
       {
         "src": "assets/projects/linkou-weige/25.jpg",
         "width": 2200,
-        "height": 1557,
+        "height": 1015,
         "alt": "林口微閣雲品—平面圖 07",
-        "source": "1125 林口微閣雲品-7.jpg",
+        "source": "1125 林口微閣雲品_7.png",
         "thumb": "assets/projects/linkou-weige/thumbs/25.jpg"
       }
     ],
@@ -1201,17 +1209,17 @@
       {
         "src": "assets/projects/tianmu-ye/27.jpg",
         "width": 2200,
-        "height": 1557,
+        "height": 1215,
         "alt": "天母葉公館—平面圖 01",
-        "source": "0918天母葉公館圖面-1.jpg",
+        "source": "0918天母葉公館圖面.png",
         "thumb": "assets/projects/tianmu-ye/thumbs/27.jpg"
       },
       {
         "src": "assets/projects/tianmu-ye/28.jpg",
         "width": 2200,
-        "height": 1557,
+        "height": 1215,
         "alt": "天母葉公館—平面圖 02",
-        "source": "0918天母葉公館圖面-2.jpg",
+        "source": "0918天母葉公館圖面_1.png",
         "thumb": "assets/projects/tianmu-ye/thumbs/28.jpg"
       }
     ],
@@ -1420,9 +1428,9 @@
       {
         "src": "assets/projects/muzha-yuanli/25.jpg",
         "width": 2200,
-        "height": 1557,
+        "height": 1379,
         "alt": "木柵元利森活劉公宅—平面圖 01",
-        "source": "0516木柵元利森活劉宅-平面-1.jpg",
+        "source": "0516木柵元利森活劉宅-平面.png",
         "thumb": "assets/projects/muzha-yuanli/thumbs/25.jpg"
       }
     ],
@@ -1631,9 +1639,9 @@
       {
         "src": "assets/projects/jingumae-507/25.jpg",
         "width": 2200,
-        "height": 1557,
+        "height": 1768,
         "alt": "Proud Jingumae 507—平面圖 01",
-        "source": "（0325)Proud Jingumae room 507-平面-1.jpg",
+        "source": "（0325)Proud Jingumae room 507-平面.png",
         "thumb": "assets/projects/jingumae-507/thumbs/25.jpg"
       }
     ],
@@ -1722,9 +1730,9 @@
       {
         "src": "assets/projects/olivia-cafe/10.jpg",
         "width": 2200,
-        "height": 1557,
+        "height": 1213,
         "alt": "鴻海 Olivia 咖啡店競標—平面圖 01",
-        "source": "0309鴻海Olivia咖啡-A3under (3)-1.jpg",
+        "source": "0309鴻海Olivia咖啡-A3under (3).png",
         "thumb": "assets/projects/olivia-cafe/thumbs/10.jpg"
       }
     ],

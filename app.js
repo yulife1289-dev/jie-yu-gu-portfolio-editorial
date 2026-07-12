@@ -4,7 +4,7 @@ const view=document.querySelector('#view');
 const mask=document.querySelector('.transition-mask');
 const reduceMotion=matchMedia('(prefers-reduced-motion: reduce)');
 const esc=s=>String(s??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
-const IMAGE_VERSION='tianmu-reorder-1';
+const IMAGE_VERSION='floorplans-1';
 const preloaded=new Set();
 function imageSrc(src){return src&&src.startsWith('assets/projects/')?`${src}?v=${IMAGE_VERSION}`:src}
 function preloadImg(src){src=imageSrc(src);if(!src||preloaded.has(src))return;preloaded.add(src);const i=new Image();i.src=src}
