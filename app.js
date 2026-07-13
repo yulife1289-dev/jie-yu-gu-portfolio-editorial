@@ -5,7 +5,7 @@ const view=document.querySelector('#view');
 const mask=document.querySelector('.transition-mask');
 const reduceMotion=matchMedia('(prefers-reduced-motion: reduce)');
 const esc=s=>String(s??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
-const IMAGE_VERSION='project-order-1';
+const IMAGE_VERSION='cover-photo-1';
 const preloaded=new Set();
 function imageSrc(src){return src&&src.startsWith('assets/projects/')?`${src}?v=${IMAGE_VERSION}`:src}
 function preloadImg(src){src=imageSrc(src);if(!src||preloaded.has(src))return;preloaded.add(src);const i=new Image();i.src=src}
@@ -55,7 +55,7 @@ function renderProjects(){
   view.innerHTML=`<section class="reel" aria-label="作品索引" style="height:${total*100}vh"><div class="reel-stage"><p class="reel-side" aria-live="polite"><span class="reel-name"></span><span class="reel-meta"></span></p><div class="reel-track">${state.projects.map(reelItem).join('')}</div><p class="reel-brand" aria-hidden="true">Projects</p><p class="reel-count" aria-hidden="true"></p><div class="reel-arrows" aria-label="切換作品"><button type="button" data-reel-dir="-1" aria-label="上一個作品">${arrowIcon(-1)}</button><button type="button" data-reel-dir="1" aria-label="下一個作品">${arrowIcon(1)}</button></div></div><span class="reel-cursor" aria-hidden="true">VIEW</span></section>`;
   state.reel=makeReel();
 }
-function reelItem(p,i){const cover=p.images[0];return `<a class="reel-item" data-i="${i}" href="#project/${esc(p.slug)}" aria-label="查看${esc(p.title)}案例"><span class="reel-frame"><img ${imageAttrs(cover,i<2)}><span class="reel-tap" aria-hidden="true">TAP TO OPEN</span></span></a>`}
+function reelItem(p,i){const cover=p.cover||p.images[0];return `<a class="reel-item" data-i="${i}" href="#project/${esc(p.slug)}" aria-label="查看${esc(p.title)}案例"><span class="reel-frame"><img ${imageAttrs(cover,i<2)}><span class="reel-tap" aria-hidden="true">TAP TO OPEN</span></span></a>`}
 function arrowIcon(dir){return `<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="${dir<0?'M15 6l-6 6 6 6':'M9 6l6 6-6 6'}"/></svg>`}
 function makeReel(){
   const stage=view.querySelector('.reel-stage'),items=[...view.querySelectorAll('.reel-item')];

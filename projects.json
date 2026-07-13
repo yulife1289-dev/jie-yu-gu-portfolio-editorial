@@ -502,7 +502,15 @@
         "thumb": "assets/projects/taoyuan-yaxin/thumbs/23.jpg"
       }
     ],
-    "plansFrom": 22
+    "plansFrom": 22,
+    "cover": {
+      "src": "assets/projects/taoyuan-yaxin/cover.jpg",
+      "width": 2200,
+      "height": 1611,
+      "alt": "亞昕向陽—專案封面",
+      "source": "LINE_ALBUM_桃園亞昕林宅_260701_21.jpg",
+      "thumb": "assets/projects/taoyuan-yaxin/thumbs/cover.jpg"
+    }
   },
   {
     "slug": "zhongyi-office",
@@ -681,7 +689,15 @@
         "thumb": "assets/projects/zhongyi-office/thumbs/21.jpg"
       }
     ],
-    "plansFrom": 20
+    "plansFrom": 20,
+    "cover": {
+      "src": "assets/projects/zhongyi-office/cover.jpg",
+      "width": 2200,
+      "height": 1650,
+      "alt": "仲誼公關辦公室—專案封面",
+      "source": "10.jpg",
+      "thumb": "assets/projects/zhongyi-office/thumbs/cover.jpg"
+    }
   },
   {
     "slug": "linkou-weige",
@@ -1228,7 +1244,15 @@
         "thumb": "assets/projects/linkou-weige/thumbs/67.jpg"
       }
     ],
-    "plansFrom": 60
+    "plansFrom": 60,
+    "cover": {
+      "src": "assets/projects/linkou-weige/cover.jpg",
+      "width": 2200,
+      "height": 1492,
+      "alt": "林口微閣雲品—專案封面",
+      "source": "LINE_ALBUM_林口薇格2024.12.11_260701_193.jpg",
+      "thumb": "assets/projects/linkou-weige/thumbs/cover.jpg"
+    }
   },
   {
     "slug": "tianmu-ye",
@@ -1455,7 +1479,15 @@
         "thumb": "assets/projects/tianmu-ye/thumbs/27.jpg"
       }
     ],
-    "plansFrom": 25
+    "plansFrom": 25,
+    "cover": {
+      "src": "assets/projects/tianmu-ye/cover.jpg",
+      "width": 2200,
+      "height": 1650,
+      "alt": "天母葉公館—專案封面",
+      "source": "LINE_ALBUM_天母葉宅_260701_109.jpg",
+      "thumb": "assets/projects/tianmu-ye/thumbs/cover.jpg"
+    }
   },
   {
     "slug": "muzha-yuanli",
@@ -1658,7 +1690,15 @@
         "thumb": "assets/projects/muzha-yuanli/thumbs/24.jpg"
       }
     ],
-    "plansFrom": 23
+    "plansFrom": 23,
+    "cover": {
+      "src": "assets/projects/muzha-yuanli/cover.jpg",
+      "width": 2200,
+      "height": 1650,
+      "alt": "木柵元利森活劉公宅—專案封面",
+      "source": "LINE_ALBUM_元利森活_260701_27.jpg",
+      "thumb": "assets/projects/muzha-yuanli/thumbs/cover.jpg"
+    }
   },
   {
     "slug": "jingumae",
@@ -1853,7 +1893,15 @@
         "thumb": "assets/projects/jingumae-507/thumbs/23.jpg"
       }
     ],
-    "plansFrom": 22
+    "plansFrom": 22,
+    "cover": {
+      "src": "assets/projects/jingumae-507/cover.jpg",
+      "width": 2200,
+      "height": 1651,
+      "alt": "Proud Jingumae—專案封面",
+      "source": "LINE_ALBUM_Proud Jingumae案_260701_80.jpg",
+      "thumb": "assets/projects/jingumae-507/thumbs/cover.jpg"
+    }
   },
   {
     "slug": "olivia-cafe",
