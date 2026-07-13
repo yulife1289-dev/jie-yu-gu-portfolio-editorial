@@ -1,10 +1,11 @@
 const PROJECT_NUMBERS={'kaohsiung-playmore':1,'taichung-wuquan':7,'taoyuan-yaxin':12,'zhongyi-office':16,'linkou-weige':17,'tianmu-ye':22,'muzha-yuanli':24,'jingumae':25,'olivia-cafe':26};
+const PROJECT_ORDER=['tianmu-ye','jingumae','muzha-yuanli','linkou-weige','zhongyi-office','taoyuan-yaxin','taichung-wuquan','olivia-cafe','kaohsiung-playmore'];
 const state={projects:[],gallery:null,index:0,opener:null,observer:null,transitioning:false,pending:false,reel:null,lastPage:null,projectsScroll:0,reelIndex:0};
 const view=document.querySelector('#view');
 const mask=document.querySelector('.transition-mask');
 const reduceMotion=matchMedia('(prefers-reduced-motion: reduce)');
 const esc=s=>String(s??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
-const IMAGE_VERSION='case-photo-order-1';
+const IMAGE_VERSION='project-order-1';
 const preloaded=new Set();
 function imageSrc(src){return src&&src.startsWith('assets/projects/')?`${src}?v=${IMAGE_VERSION}`:src}
 function preloadImg(src){src=imageSrc(src);if(!src||preloaded.has(src))return;preloaded.add(src);const i=new Image();i.src=src}
@@ -13,7 +14,10 @@ function preloadAround(images,idx){const len=images.length;if(len<2)return;prelo
 async function init(){
   const res=await fetch(`projects.json?v=${IMAGE_VERSION}`);
   if(!res.ok)throw new Error('作品資料載入失敗');
-  state.projects=(await res.json()).sort((a,b)=>a.slug==='tianmu-ye'?-1:b.slug==='tianmu-ye'?1:PROJECT_NUMBERS[b.slug]-PROJECT_NUMBERS[a.slug]);
+  state.projects=(await res.json()).sort((a,b)=>{
+    const ai=PROJECT_ORDER.indexOf(a.slug),bi=PROJECT_ORDER.indexOf(b.slug);
+    return (ai<0?PROJECT_ORDER.length:ai)-(bi<0?PROJECT_ORDER.length:bi);
+  });
   document.querySelector('#year').textContent=new Date().getFullYear();
   addEventListener('hashchange',transitionRender);
   bindLightbox();bindImageProtection();swapView(false);
