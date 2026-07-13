@@ -1,10 +1,10 @@
-const PROJECT_NUMBERS={'kaohsiung-playmore':1,'taichung-wuquan':7,'taoyuan-yaxin':12,'zhongyi-office':16,'linkou-weige':17,'tianmu-ye':22,'muzha-yuanli':24,'jingumae-507':25,'olivia-cafe':26};
+const PROJECT_NUMBERS={'kaohsiung-playmore':1,'taichung-wuquan':7,'taoyuan-yaxin':12,'zhongyi-office':16,'linkou-weige':17,'tianmu-ye':22,'muzha-yuanli':24,'jingumae':25,'olivia-cafe':26};
 const state={projects:[],gallery:null,index:0,opener:null,observer:null,transitioning:false,pending:false,reel:null,lastPage:null,projectsScroll:0,reelIndex:0};
 const view=document.querySelector('#view');
 const mask=document.querySelector('.transition-mask');
 const reduceMotion=matchMedia('(prefers-reduced-motion: reduce)');
 const esc=s=>String(s??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
-const IMAGE_VERSION='floorplans-1';
+const IMAGE_VERSION='case-photo-order-1';
 const preloaded=new Set();
 function imageSrc(src){return src&&src.startsWith('assets/projects/')?`${src}?v=${IMAGE_VERSION}`:src}
 function preloadImg(src){src=imageSrc(src);if(!src||preloaded.has(src))return;preloaded.add(src);const i=new Image();i.src=src}
@@ -137,7 +137,7 @@ function renderProject(slug){
   const i=state.projects.findIndex(p=>p.slug===slug);if(i<0){location.replace('#projects');return}
   const p=state.projects[i],next=state.projects[(i+1)%state.projects.length],num=String(PROJECT_NUMBERS[p.slug]).padStart(2,'0');
   const plansFrom=Math.max(1,Math.min(p.images.length,Number.isFinite(p.plansFrom)?p.plansFrom:p.images.length));
-  const gallery=p.images.slice(1,plansFrom).map((im,n)=>({im,index:n+1}));
+  const gallery=p.images.slice(0,plansFrom).map((im,n)=>({im,index:n}));
   const plans=p.images.slice(plansFrom).map((im,n)=>({im,index:n+plansFrom}));
   document.title=`${p.title}｜古捷宇作品集`;
   view.innerHTML=`<article class="case-study"><div class="case-media" aria-label="${esc(p.title)}案例圖片">${gallery.map((item,n)=>caseImage(item,n===0)).join('')}${plans.length?`<h2 class="case-plan-label">FLOOR PLAN<small>平面圖</small></h2>${plans.map(item=>caseImage(item,false)).join('')}`:''}</div><aside class="case-side reveal"><div class="case-side-top"><p>WORK · NO.${num}</p><a class="case-back" href="#projects">← PROJECT INDEX</a></div><div class="case-side-title"><h1>${esc(p.title)}<small>${esc(p.en)}</small></h1><p>NO.${num}</p></div><div class="case-side-info"><dl><dt>CATEGORY</dt><dd>${esc(p.category)}</dd><dt>STATUS</dt><dd>${esc(p.status)}</dd></dl><p>${esc(p.description)}</p><a class="case-next" href="#project/${esc(next.slug)}"><span>NEXT PROJECT</span><strong>${esc(next.title)}</strong></a><a class="case-all" href="#projects">ALL CASE STUDIES</a></div></aside><nav class="case-mobile-actions reveal" aria-label="手機版案例導覽"><a class="case-next" href="#project/${esc(next.slug)}"><span>NEXT PROJECT</span><strong>${esc(next.title)}</strong></a><a class="case-all" href="#projects">ALL CASE STUDIES</a></nav></article>`;
