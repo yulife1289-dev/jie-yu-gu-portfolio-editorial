@@ -26,8 +26,8 @@ function bindImageProtection(){
   document.addEventListener('contextmenu',e=>{if(e.target.closest('img'))e.preventDefault()});
   document.addEventListener('dragstart',e=>{if(e.target.closest('img'))e.preventDefault()});
 }
-function route(){const h=decodeURIComponent(location.hash||'#projects');if(h==='#resume')return{page:'resume'};if(h.startsWith('#project/'))return{page:'project',slug:h.slice(9)};return{page:'projects'}}
-function setNav(page){const nav=page==='project'?'projects':page;document.querySelectorAll('[data-nav]').forEach(a=>{const active=a.dataset.nav===nav;a.classList.toggle('active',active);if(active)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current')})}
+function route(){const h=decodeURIComponent(location.hash||'#projects');if(h==='#resume')return{page:'resume'};if(h.startsWith('#drawings/'))return{page:'drawings',slug:h.slice(10)};if(h.startsWith('#project/'))return{page:'project',slug:h.slice(9)};return{page:'projects'}}
+function setNav(page){const nav=page==='project'||page==='drawings'?'projects':page;document.querySelectorAll('[data-nav]').forEach(a=>{const active=a.dataset.nav===nav;a.classList.toggle('active',active);if(active)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current')})}
 function transitionRender(){
   if(reduceMotion.matches){swapView();return}
   if(state.transitioning){state.pending=true;return}
@@ -40,7 +40,7 @@ function swapView(shouldFocus=true){
   closeLightbox();state.observer?.disconnect();state.reel?.destroy();state.reel=null;
   if(state.lastPage==='projects')state.projectsScroll=scrollY;
   const r=route();setNav(r.page);
-  if(r.page==='resume')renderResume();else if(r.page==='project')renderProject(r.slug);else renderProjects();
+  if(r.page==='resume')renderResume();else if(r.page==='project')renderProject(r.slug);else if(r.page==='drawings')renderDrawings(r.slug);else renderProjects();
   scrollTo({top:r.page==='projects'?state.projectsScroll:0,left:0,behavior:'instant'});
   state.lastPage=r.page;requestAnimationFrame(()=>{if(shouldFocus)view.focus({preventScroll:true});bindReveals()});
 }
@@ -137,14 +137,27 @@ function renderResume(){
   view.innerHTML=`<section class="resume"><aside class="resume-aside reveal"><p class="dossier-label">CURRICULUM VITAE · 2026</p><img src="assets/profile.jpg" width="772" height="1161" alt="古捷宇個人創作肖像"><h1>古捷宇<small>JIE-YU GU</small></h1><p>Interior Designer</p><dl><dt>LOCATION</dt><dd>Taipei Xinyi · Taiwan</dd><dt>OPEN TO</dt><dd>Full-time interior design roles</dd><dt>LANGUAGES</dt><dd>國語 · 台語 · English</dd></dl></aside><div class="resume-content">${sections.map(([n,t,b],i)=>`<article class="dossier-section reveal" style="--i:${i}"><header><span>${n}</span><h2>${t}</h2></header><div>${b}</div></article>`).join('')}</div></section>`;
 }
 
+function renderDrawings(slug){
+  const p=state.projects.find(project=>project.slug===slug),drawings=Array.isArray(p?.constructionDrawings)?p.constructionDrawings:[];
+  if(!p||!drawings.length){location.replace(`#project/${slug}`);return}
+  const num=String(PROJECT_NUMBERS[p.slug]).padStart(2,'0');
+  document.title=`${p.title} 工程圖｜古捷宇作品集`;
+  view.innerHTML=`<article class="drawing-viewer"><aside class="drawing-side reveal"><div class="drawing-side-top"><p>WORK · NO.${num}</p><a href="#project/${esc(p.slug)}">← PROJECT</a></div><div class="drawing-side-title"><h1>工程圖<small>CONSTRUCTION DRAWINGS</small></h1><p>${esc(p.title)}</p></div><nav class="drawing-list" aria-label="${esc(p.title)}工程圖冊">${drawings.map((drawing,index)=>`<button type="button" data-drawing-index="${index}" aria-pressed="${index===0?'true':'false'}"><span>${String(index+1).padStart(2,'0')} · ${esc(drawing.title)}</span><small>${drawing.pages} PAGES</small></button>`).join('')}</nav></aside><section class="drawing-stage reveal"><header class="drawing-stage-head"><div><p>ENGINEERING DRAWINGS</p><h2 data-drawing-title></h2></div><a data-drawing-open target="_blank" rel="noopener">OPEN PDF ↗</a></header><iframe class="drawing-frame" data-drawing-frame title="工程圖閱覽" loading="eager"></iframe><p class="drawing-note">請使用 PDF 工具列縮放、搜尋與切換頁面。</p></section></article>`;
+  const frame=view.querySelector('[data-drawing-frame]'),title=view.querySelector('[data-drawing-title]'),open=view.querySelector('[data-drawing-open]'),buttons=[...view.querySelectorAll('[data-drawing-index]')];
+  function selectDrawing(index){const drawing=drawings[index],url=`${drawing.file}?v=${IMAGE_VERSION}`;frame.src=url;frame.title=`${p.title}－${drawing.title}`;title.textContent=drawing.title;open.href=url;open.setAttribute('aria-label',`另開 ${drawing.title} PDF`);buttons.forEach((button,n)=>{const active=n===index;button.classList.toggle('active',active);button.setAttribute('aria-pressed',active?'true':'false')})}
+  buttons.forEach(button=>button.addEventListener('click',()=>selectDrawing(Number(button.dataset.drawingIndex))));
+  selectDrawing(0);
+}
+
 function renderProject(slug){
   const i=state.projects.findIndex(p=>p.slug===slug);if(i<0){location.replace('#projects');return}
   const p=state.projects[i],next=state.projects[(i+1)%state.projects.length],num=String(PROJECT_NUMBERS[p.slug]).padStart(2,'0');
+  const drawingsLink=Array.isArray(p.constructionDrawings)&&p.constructionDrawings.length?`<a class="case-drawings" href="#drawings/${esc(p.slug)}"><span>CONSTRUCTION DRAWINGS</span><strong>工程圖閱覽</strong></a>`:'';
   const plansFrom=Math.max(1,Math.min(p.images.length,Number.isFinite(p.plansFrom)?p.plansFrom:p.images.length));
   const gallery=p.images.slice(0,plansFrom).map((im,n)=>({im,index:n}));
   const plans=p.images.slice(plansFrom).map((im,n)=>({im,index:n+plansFrom}));
   document.title=`${p.title}｜古捷宇作品集`;
-  view.innerHTML=`<article class="case-study"><div class="case-media" aria-label="${esc(p.title)}案例圖片">${gallery.map((item,n)=>caseImage(item,n===0)).join('')}${plans.length?`<h2 class="case-plan-label">FLOOR PLAN<small>平面圖</small></h2>${plans.map(item=>caseImage(item,false)).join('')}`:''}</div><aside class="case-side reveal"><div class="case-side-top"><p>WORK · NO.${num}</p><a class="case-back" href="#projects">← PROJECT INDEX</a></div><div class="case-side-title"><h1>${esc(p.title)}<small>${esc(p.en)}</small></h1><p>NO.${num}</p></div><div class="case-side-info"><dl><dt>CATEGORY</dt><dd>${esc(p.category)}</dd><dt>STATUS</dt><dd>${esc(p.status)}</dd></dl><p>${esc(p.description)}</p><a class="case-next" href="#project/${esc(next.slug)}"><span>NEXT PROJECT</span><strong>${esc(next.title)}</strong></a><a class="case-all" href="#projects">ALL CASE STUDIES</a></div></aside><nav class="case-mobile-actions reveal" aria-label="手機版案例導覽"><a class="case-next" href="#project/${esc(next.slug)}"><span>NEXT PROJECT</span><strong>${esc(next.title)}</strong></a><a class="case-all" href="#projects">ALL CASE STUDIES</a></nav></article>`;
+  view.innerHTML=`<article class="case-study"><div class="case-media" aria-label="${esc(p.title)}案例圖片">${gallery.map((item,n)=>caseImage(item,n===0)).join('')}${plans.length?`<h2 class="case-plan-label">FLOOR PLAN<small>平面圖</small></h2>${plans.map(item=>caseImage(item,false)).join('')}`:''}</div><aside class="case-side reveal"><div class="case-side-top"><p>WORK · NO.${num}</p><a class="case-back" href="#projects">← PROJECT INDEX</a></div><div class="case-side-title"><h1>${esc(p.title)}<small>${esc(p.en)}</small></h1><p>NO.${num}</p></div><div class="case-side-info"><dl><dt>CATEGORY</dt><dd>${esc(p.category)}</dd><dt>STATUS</dt><dd>${esc(p.status)}</dd></dl><p>${esc(p.description)}</p>${drawingsLink}<a class="case-next" href="#project/${esc(next.slug)}"><span>NEXT PROJECT</span><strong>${esc(next.title)}</strong></a><a class="case-all" href="#projects">ALL CASE STUDIES</a></div></aside><nav class="case-mobile-actions reveal" aria-label="手機版案例導覽">${drawingsLink}<a class="case-next" href="#project/${esc(next.slug)}"><span>NEXT PROJECT</span><strong>${esc(next.title)}</strong></a><a class="case-all" href="#projects">ALL CASE STUDIES</a></nav></article>`;
   const items=[...view.querySelectorAll('.case-img')];
   const onClick=e=>openLightbox(p,+e.currentTarget.dataset.global,e.currentTarget);
   items.forEach(b=>b.addEventListener('click',onClick));
